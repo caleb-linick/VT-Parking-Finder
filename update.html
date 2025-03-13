@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Admin Panel</title>
+    <style>
+        .container {
+            display: flex; 
+
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            margin:100px ;
+            margin-top:10px ;
+            padding: 20px;
+            align-items:center;
+            border-radius: 8px
+        }
+        .fcontainer{
+
+            width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-style: solid;
+            border-radius: 8px;
+            border-width: 0.5px;
+            min-height: 400px;
+        }
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 36px; 
+            font-weight: 700; 
+        }
+
+        h2 {
+            text-align: center;
+            font-family: 'Quicksand', sans-serif;
+            font-size: 24px; 
+            font-weight: 400; 
+            margin-left: auto;
+            margin-right: auto;
+        }
+        h3 {
+            font-family: 'Monserrat', sans-serif;
+            font-size: 24px; 
+            font-weight: 500;
+        }
+        body {
+            font-family: 'Monserrat', sans-serif;
+            font-size: 16px; 
+            font-weight: 400;
+            margin: 0;
+            padding: 0;
+            background-image: linear-gradient(to left, #cedbfb, #fefcff);
+
+        
+        }
+        .heading{
+            font-family: 'Quicksand', sans-serif;
+            font-size: 35px; 
+            font-weight: 500; 
+        }
+        label{
+            font-size: 14px; 
+        }
+        input {
+  width: 100%;
+  height: 30px;
+  /* padding: 12px 20px; */
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f8f8f8;
+  resize: none;
+}
+        button{
+       left:50%;
+       width:80%;
+       height:30px;
+       position:relative;
+    top:100%; 
+    left:7%;
+margin-top: 20 px ;
+        }
+        .form {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start; 
+        }
+        .text-box {
+        margin-top: auto; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Update Occupancy</h1>
+    <body style="background-color:#cde0e6;">
+
+    <!-- Patients CRUD -->
+    <h2>Parking Spots</h2>
+    <div class="container">
+        <div id="Update"></div>
+        <form id="updateOccupancyForm">
+            <h3>Update Occupancy</h3>
+            <label for="spotID">ID:</label>
+            <input type="text" id="spotID" name="spotID"><br>
+            <label for="occupancy">Parking Spot Occupancy:</label>
+            <input type="text" id="occupancy" name="occupancy"><br>
+            <button type="button" onclick="updateOccupancy()">Update Occupancy</button>
+        </form>
+    </div>
+
+    
+    <div id="updateList"></div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        // Functions to handle CRUD operations
+        
+
+
+    // update occupancy of parking spot
+    function updateOccupancy() {            
+        // alert("button clicked!")
+        // console.log("hello")
+        // console.log(document)
+        var spotID = document.getElementById("spotID").value;
+        var occupancy = document.getElementById("occupancy").value;
+
+        // console.log(spotID)
+        // console.log(occupancy)
+        
+        var parkingSpotData = {
+            type: "parking spot",
+            spot_id: spotID,
+            spot_occupancy: occupancy,
+        };
+
+
+        $.ajax({
+            url: "/occupancy",
+            type: "PUT",
+            contentType: "application/json",
+            data: JSON.stringify(parkingSpotData),
+            success: function(response) {
+                console.log("Parking Spot Updated:", response);
+            },
+            error: function(xhr, status, error) {
+                console.error("Parking Spot Updated:", error);
+            }
+        });
+
+        console.log("Parking Spot Updated:", parkingSpotData);
+    }
+
+    $(document).ready(function() {
+        $("#updateOccupancyForm").submit(function(event) {
+            event.preventDefault()
+            updateOccupancy()
+        });
+    });
+
+    </script>
+</body>
+</html>
