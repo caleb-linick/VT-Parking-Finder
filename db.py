@@ -5,7 +5,7 @@ from hashlib import sha256
 hostname = 'localhost'
 database = 'test'
 username = 'postgres'
-password = 'iLikePandas1!'
+password = 'testpassword'
 port_id = 5432
 conn = None
 cur = None
@@ -53,3 +53,17 @@ def user_exists(mydb, username):
     mycursor = mydb.cursor()
     mycursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     return bool(mycursor.fetchone())
+
+
+def update_entity(mydb, data):
+    data_dict = json.loads(data)
+    id = data_dict['spot_id']
+    occupancy = data_dict['spot_occupancy']
+
+    print(id)
+    print(occupancy)
+    # data_dict = json.loads(data)
+    mycursor = mydb.cursor()
+    mycursor.execute('UPDATE spot SET occupancy = %s WHERE id = %s', (occupancy, id))
+    mydb.commit()
+    return 'complete'
