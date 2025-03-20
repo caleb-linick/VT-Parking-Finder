@@ -22,6 +22,13 @@ create table users (
     car VARCHAR(100)
 );
 
+CREATE TABLE ultrasonic_data (
+    id SERIAL PRIMARY KEY,
+    distance FLOAT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 insert into parking (name, address, location) values ('Perry Street Parking Garage', '1330 Perry Street, Blacksburg, VA, 24060', 'Virginia Tech');
 
 insert into spot (occupancy, type) values (true, 'Regular spot');

@@ -1,4 +1,5 @@
 import psycopg2
+import serial
 import json
 from hashlib import sha256
 
@@ -9,6 +10,10 @@ password = 'testpassword'
 port_id = 5432
 conn = None
 cur = None
+
+# Serial port settings (Update based on your system)
+SERIAL_PORT = "COM4"  # Change to "/dev/ttyUSB0" for Linux/macOS
+BAUD_RATE = 9600
 
 # Connect to MySQL (change password)
 def connectdatabase():
@@ -67,3 +72,38 @@ def update_entity(mydb, data):
     mycursor.execute('UPDATE spot SET occupancy = %s WHERE id = %s', (occupancy, id))
     mydb.commit()
     return 'complete'
+
+# Insert ultrasonic sensor status (True/False) into database
+def insert_sensor_status(mydb, is_occupied):
+    cur = mydb.cursor()
+    cur.execute("INSERT INTO ultrasonic_status (is_occupied) VALUES (%s)", (is_occupied,))
+    mydb.commit()
+    cur.close()
+
+# Read data from the Arduino through the serial port
+def read_from_serial():
+    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+    
+    try:
+        while True:
+            line = ser.readline().decode('utf-8').strip()
+            if line:
+                try:
+                    is_occupied = bool(int(line))  # Convert to boolean (0 -> False, 1 -> True)
+                    print(f"Object detected: {is_occupied}")
+
+                    # Store data in the database
+                    conn = connectdatabase()
+                    insert_sensor_status(conn, is_occupied)
+                    conn.close()
+                except ValueError:
+                    print("Invalid data received:", line)
+    except KeyboardInterrupt:
+        print("Stopping serial read")
+    finally:
+        ser.close()
+
+
+# Run serial data reading
+if __name__ == "__main__":
+    read_from_serial()
