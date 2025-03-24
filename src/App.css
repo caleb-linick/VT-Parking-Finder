@@ -1,0 +1,161 @@
+/* 
+ * App.css
+ *
+ * Global stylesheet for the VT Parking Finder application.
+ * This file contains:
+ * 1. CSS reset rules to normalize across browsers
+ * 2. Global styles applied throughout the application
+ * 3. Utility classes for common patterns
+ * 4. Custom styles specific to VT branding
+ * 5. Responsive design adjustments
+ * 6. Animation definitions
+ *
+ * The color scheme uses Virginia Tech's official colors:
+ * - Maroon (#800000) as the primary color
+ * - Orange (#FF6600) as the secondary/accent color
+ */
+
+/* ---------- CSS Reset & Global Defaults ---------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f0f0;
+}
+
+/* ---------- Default App Styles (from Create React App) ---------- */
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+/* Only apply animation if the user hasn't specified they prefer reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Custom VT Parking Finder Styles ---------- */
+
+/* Global CSS Variables for consistent theming */
+:root {
+  --primary-color: #800000; /* VT Maroon */
+  --secondary-color: #FF6600; /* VT Orange */
+  --dark-primary: #600000;
+  --light-primary: #990000;
+  --text-light: #FFFFFF;
+  --text-dark: #333333;
+  --background-light: #EEEEEE;
+  --background-dark: #282c34;
+}
+
+/* Global link styling */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Global button styling */
+button {
+  cursor: pointer;
+}
+
+/* ---------- Utility Classes ---------- */
+
+/* Parking status indicator colors */
+.parking-status-full {
+  background-color: red;
+  color: white;
+}
+
+.parking-status-some {
+  background-color: yellow;
+  color: black;
+}
+
+.parking-status-available {
+  background-color: green;
+  color: white;
+}
+
+/* ---------- Responsive Design ---------- */
+
+/* Tablet and mobile adjustments */
+@media (max-width: 768px) {
+  /* Stack the info boxes vertically on smaller screens */
+  .infoBoxesContainer {
+    flex-direction: column;
+  }
+  
+  /* Adjust margin for vertically stacked boxes */
+  .infoBox {
+    margin: 10px 0;
+  }
+  
+  /* Stack map and legend vertically */
+  .mapSection {
+    flex-direction: column;
+  }
+  
+  /* Adjust legend positioning when stacked */
+  .legend {
+    margin-left: 0;
+    margin-top: 20px;
+  }
+}
+
+/* ---------- Animations ---------- */
+
+/* Fade animation for route transitions */
+.fade-enter {
+  opacity: 0;
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 300ms;
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
+}
