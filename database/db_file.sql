@@ -14,21 +14,6 @@ CREATE TABLE sensor (
     last_checkup_date TIMESTAMP NOT NULL    
 );
 
-create table spot ( 
-    id BIGSERIAL NOT NULL PRIMARY KEY,
-    occupancy BOOLEAN NOT NULL,
-    type VARCHAR(100),
-    lot_id BIGINT REFERENCES parking(id),
-    sensor_id BIGINT REFERENCES sensor(id)
-);
-
-create table users ( 
-    id BIGSERIAL NOT NULL PRIMARY KEY,
-    username VARCHAR(100) NOT NULL,
-    password TEXT NOT NULL,
-    car VARCHAR(100)
-);
-
 -- CREATE TABLE ultrasonic_data (
 --     id SERIAL PRIMARY KEY,
 --     distance FLOAT NOT NULL,
@@ -39,8 +24,27 @@ CREATE TABLE sensor_data (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     distance FLOAT NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_occupied BOOLEAN NOT NULL,
     sensor_id BIGINT REFERENCES sensor(id)
 );
+
+create table spot ( 
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    type VARCHAR(100),
+    occupancy BOOLEAN NOT NULL,
+    lot_id BIGINT REFERENCES parking(id),
+    sensor_id BIGINT REFERENCES sensor(id)
+    -- occupancy BOOLEAN REFERENCES sensor_data(is_occupied)
+);
+
+create table users ( 
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
+    password TEXT NOT NULL,
+    car VARCHAR(100)
+);
+
+
 
 -- Parking Data
 INSERT INTO parking (name, address, location) VALUES
