@@ -15,7 +15,7 @@ cur = None
 SERIAL_PORT = "COM4"  # Change to "/dev/ttyUSB0" for Linux/macOS
 BAUD_RATE = 9600
 
-# Connect to MySQL (change password)
+# Connect to MySQL = returns a connection to the postgresql db
 def connectdatabase():
     conn = psycopg2.connect(
         host = hostname,
@@ -26,11 +26,13 @@ def connectdatabase():
     )
     return conn
 
+# Used to execute simple queries using the connection
 def querydb(querystr, conn):
     cur = conn.cursor()
     cur.execute(querystr)
     return cur.fetchall()
 
+# Used to authenticate the passwords by ensuring the username and encrypted password matches the pair stored in the database
 def authenticate(mydb, username, password):
     mycursor = mydb.cursor()
     hashed_password = sha256(password.encode()).hexdigest()
@@ -42,11 +44,13 @@ def authenticate(mydb, username, password):
     finally:
         mycursor.close()
 
+# Used to get user info 
 def get_user_info(mydb, username):
     mycursor = mydb.cursor()
     mycursor.execute("SELECT u.car FROM users u WHERE u.username = %s", (username,))
     return mycursor.fetchone()
 
+# Used to implement sign up functionality (stores username and encrypted password as a pair in the users table)
 def signup_user(mydb, username, password):
     mycursor = mydb.cursor()
     hashed_password = sha256(password.encode()).hexdigest()
@@ -54,12 +58,13 @@ def signup_user(mydb, username, password):
     mydb.commit()
     return get_user_info(mydb, username)
 
+# Function used whenever it is needed to check that the user exists in the users table
 def user_exists(mydb, username):
     mycursor = mydb.cursor()
     mycursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     return bool(mycursor.fetchone())
 
-
+# Functionality for updating the occupancy of a spot, will be used when the sensor detects a change and notifies the backend
 def update_entity(mydb, data):
     data_dict = json.loads(data)
     id = data_dict['spot_id']
