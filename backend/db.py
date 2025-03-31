@@ -78,6 +78,19 @@ def update_entity(mydb, data):
     mydb.commit()
     return 'complete'
 
+# Functionality for updating the car associated with an account, will be used when the user enters a car model into the form
+def update_car(mydb, data, username):
+    data_dict = json.loads(data)
+    car_model = data_dict['model']
+
+    # print(id)
+    # print(occupancy)
+    # data_dict = json.loads(data)
+    mycursor = mydb.cursor()
+    mycursor.execute('UPDATE users SET car = %s WHERE username = %s', (car_model, username))
+    mydb.commit()
+    return 'complete'
+
 # Insert ultrasonic sensor status (True/False) into database
 def insert_sensor_status(mydb, is_occupied):
     cur = mydb.cursor()
