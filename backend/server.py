@@ -70,6 +70,19 @@ def update_occupancy():
             
         return "Data is updated"
 
+# update car endpoint = used to update the car associated with the account
+@app.route('/car', methods=['PUT'])
+def update_car():
+    username = session['username']
+
+    if request.method == 'PUT':
+        print('inside')
+        data = request.data
+        # spot_id = request.form["id"]
+        # spot_occupancy = request.form['occupancy']
+        database_module.update_car(mydb, data, username)
+            
+        return "Data is updated"
 
 if __name__ == '__main__':
     app.run(debug=True)
