@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Healthcare Admin Panel</title>
+    <title>Testing Update functions:3</title>
     <style>
         .container {
             display: flex; 
@@ -99,7 +99,7 @@ margin-top: 20 px ;
     <h1>Update Occupancy</h1>
     <body style="background-color:#cde0e6;">
 
-    <!-- Patients CRUD -->
+    <!-- Update Forms -->
     <h2>Parking Spots</h2>
     <div class="container">
         <div id="Update"></div>
@@ -110,6 +110,12 @@ margin-top: 20 px ;
             <label for="occupancy">Parking Spot Occupancy:</label>
             <input type="text" id="occupancy" name="occupancy"><br>
             <button type="button" onclick="updateOccupancy()">Update Occupancy</button>
+        </form>
+        <form id="updateCarForm">
+            <h3>Update Car</h3>
+            <label for="model">Car:</label>
+            <input type="text" id="model" name="model"><br>
+            <button type="button" onclick="updateCar()">Update Car/Submit</button>
         </form>
     </div>
 
@@ -162,6 +168,44 @@ margin-top: 20 px ;
         });
     });
 
+    // update car of currently logged in account
+    function updateCar() {            
+        // alert("button clicked!")
+        // console.log("hello")
+        // console.log(document)
+        var car_model = document.getElementById("model").value;
+
+        // console.log(spotID)
+        // console.log(occupancy)
+        
+        var userCarData = {
+            type: "user car model",
+            model: car_model,
+        };
+
+
+        $.ajax({
+            url: "/car",
+            type: "PUT",
+            contentType: "application/json",
+            data: JSON.stringify(userCarData),
+            success: function(response) {
+                console.log("User's Car Updated:", response);
+            },
+            error: function(xhr, status, error) {
+                console.error("User's Car Updated:", error);
+            }
+        });
+
+        console.log("User's Car Updated:", userCarData);
+    }
+
+    $(document).ready(function() {
+        $("#updateCarForm").submit(function(event) {
+            event.preventDefault()
+            updateCar()
+        });
+    });    
     </script>
 </body>
 </html>
