@@ -34,15 +34,23 @@ def querydb(querystr, conn):
 
 # Used to authenticate the passwords by ensuring the username and encrypted password matches the pair stored in the database
 def authenticate(mydb, username, password):
-    mycursor = mydb.cursor()
+    #mycursor = mydb.cursor()
     hashed_password = sha256(password.encode()).hexdigest()
+    cur = None
     try:
-        mycursor.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, hashed_password))
-        user = mycursor.fetchone() 
-        print(user)
-        return bool(user)  
+        cur = mydb.cursor()
+        print(f"LOGIN ATTEMPT — username: '{username}', hashed_password: '{hashed_password}'")
+
+        cur.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, hashed_password))
+        user = cur.fetchone() 
+        print(f"QUERY RESULT: {user}")  # debug output
+        return bool(user)
+    except Exception as e:
+        print("AUTH ERROR:", e)
+        return False
     finally:
-        mycursor.close()
+        if cur:
+            cur.close()
 
 # Used to get user info 
 def get_user_info(mydb, username):
@@ -124,4 +132,5 @@ def read_from_serial():
 
 # Run serial data reading
 if __name__ == "__main__":
-    read_from_serial()
+    print("Skipping for testing")
+   # read_from_serial()

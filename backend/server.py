@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, session
-import mysql.connector
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask_cors import CORS  # Import CORS
+#import mysql.connector
 import db as database_module
 
 app = Flask(__name__, template_folder='pages')
+CORS(app) #for multiple terminals
 
 mydb = database_module.connectdatabase()
 
@@ -33,7 +35,18 @@ def login():
         return redirect(url_for('update')) # redirect to a user page?
     else:
         return "Incorrect Password or Username. Try again", 401
-
+# login endpoint but through frontend
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    username = request.form['username']
+    password = request.form['password']
+    
+    if database_module.authenticate(mydb, username, password):
+        session['username'] = username
+        return jsonify({ "success": True }), 200
+    else:
+        return jsonify({ "success": False, "error": "Invalid username or password" }), 401
+    
 # signup endpoint = Uses the data from the post request to make sure the pair is unused (yes = redirect to the next page, no = error)
 @app.route('/signup', methods=['POST'])
 def signup():
@@ -41,15 +54,14 @@ def signup():
     password = request.form['password']
     
     if database_module.user_exists(mydb, username):
-        return "This user already has an account", 409
+        return jsonify({"success": False, "error": "This user already has an account"}), 409
     try:
-        if database_module.signup_user(mydb, username, password):
-            session['username'] = username
-            return redirect(url_for('update')) # redirect to a user page?
-        else:
-            return "Signup Failed", 400
-    except mysql.connector.IntegrityError as e:
-        return f"THIS USER ALREADY HAS AN ACCOUNT. PLEASE SIGN IN", 500
+        user_info = database_module.signup_user(mydb, username, password)
+        session['username'] = username
+        return jsonify({"success": True, "message": "User created successfully"}), 200
+    except Exception as e:
+        print("Signup error:", e)
+        return jsonify({"success": False, "error": "Signup failed"}), 500
 
 # logout endpoint = only needs to pop the username and redirect back to the home page
 @app.route('/logout')

@@ -40,7 +40,7 @@ const Login = () => {
    * 
    * @param {Event} e - The form submission event
    */
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); // Clear any previous errors
 
@@ -49,36 +49,42 @@ const Login = () => {
       setError('Please enter both username and password');
       return;
     }
+      // Choose the appropriate endpoint based on the current mode
+      const endpoint = isLogin ? 'http://localhost:5000/api/login' : 'http://localhost:5000/signup';
 
-    // Mock API call - in production, this would be a real backend request
-    setTimeout(() => {
-      if (isLogin) {
-        // Login flow
-        console.log(`Logging in user: ${username}`);
-        
-        // Mock successful login - in production, this would validate credentials
-        localStorage.setItem('user', JSON.stringify({ 
-          username, 
-          favorites: [1, 3] // Sample favorite parking lots
-        }));
-        
-        // Redirect to home page after login
-        navigate('/');
-      } else {
-        // Signup flow
-        console.log(`Signing up user: ${username}`);
-        
-        // Mock successful signup - in production, this would create a new user
-        localStorage.setItem('user', JSON.stringify({ 
-          username, 
-          favorites: [] // New users start with no favorites
-        }));
-        
-        // Redirect to home page after signup
-        navigate('/');
-      }
-    }, 1000); // Simulate network delay
-  };
+
+  // Prepare form data in URL-encoded format
+  const formData = new URLSearchParams();
+  formData.append('username', username);
+  formData.append('password', password);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
+    });
+
+    const result = await response.json();
+    console.log('Login result:', result);
+
+
+    if (response.ok && result.success) {
+      const user = { username, favorites: isLogin ? [1, 3] : [] };
+      localStorage.setItem('user', JSON.stringify(user));
+      navigate('/');
+    } else {
+      setError(result.error || 'Authentication failed');
+    }
+  } catch (err) {
+    console.error(err);
+    console.error('Login failed:', err);
+    setError('An error occurred, please try again later.');
+  }
+};
+    
 
   return (
     <div style={styles.container}>
