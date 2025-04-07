@@ -132,8 +132,42 @@ async function startServers() {
     });
 
     backendProcess.stderr.on('data', (data) => {
-      console.error(`${colors.red}[Backend Error] ${colors.reset}${data.toString().trim()}`);
+      const message = data.toString().trim();
+    
+      const httpMatch = message.match(/HTTP\/\d\.\d"\s(\d{3})/);
+      const statusCode = httpMatch ? parseInt(httpMatch[1], 10) : null;
+    
+      const isInfo = [
+        'WARNING: This is a development server',
+        'Running on',
+        'Press CTRL+C to quit',
+        'Debugger',
+        'Restarting with stat'
+      ].some(line => message.includes(line));
+    
+      if (statusCode !== null) {
+        if (statusCode >= 200 && statusCode < 300) {
+          console.log(`${colors.green}[Backend Success] ${colors.reset}${message}`);
+        } else if (statusCode >= 300 && statusCode < 400) {
+          console.log(`${colors.yellow}[Backend Redirect] ${colors.reset}${message}`);
+        } else if (statusCode >= 400 && statusCode < 500) {
+          console.warn(`${colors.yellow}[Backend Client Error] ${colors.reset}${message}`);
+        } else if (statusCode >= 500) {
+          console.error(`${colors.red}[Backend Server Error] ${colors.reset}${message}`);
+        } else {
+          console.log(`${colors.blue}[Backend HTTP] ${colors.reset}${message}`);
+        }
+      } else if (isInfo) {
+        console.log(`${colors.yellow}[Backend Info] ${colors.reset}${message}`);
+      } else if (message.includes('DeprecationWarning')) {
+        console.warn(`${colors.yellow}[Deprecation Warning] ${colors.reset}${message}`);
+      } else if (message.includes('webpack')) {
+        console.log(`${colors.green}[Webpack] ${colors.reset}${message}`);
+      } else {
+        console.error(`${colors.red}[Backend Error] ${colors.reset}${message}`);
+      }
     });
+    
 
     setTimeout(() => {
       console.log(`${colors.magenta}Starting React frontend server...${colors.reset}`);
