@@ -29,8 +29,9 @@ const colors = {
 console.log(`${colors.bright}${colors.blue}=== VT Parking Finder ====${colors.reset}`);
 console.log(`${colors.green}Preparing development environment...\n${colors.reset}`);
 
-// Determine the backend directory
+// Determine directories
 const backendDir = path.join(__dirname, 'backend');
+const frontendDir = __dirname;
 
 // Check if backend directory exists
 if (!fs.existsSync(backendDir)) {
@@ -39,14 +40,12 @@ if (!fs.existsSync(backendDir)) {
   process.exit(1);
 }
 
-// Determine if we're on Windows or Unix-like OS
+// Determine platform specifics
 const isWindows = os.platform() === 'win32';
 const venvPath = path.join(backendDir, 'venv');
 const pythonVenvActivate = isWindows ? 
   path.join(venvPath, 'Scripts', 'activate') :
   path.join(venvPath, 'bin', 'activate');
-
-// Check if virtual environment exists
 const venvExists = isWindows ? 
   fs.existsSync(path.join(venvPath, 'Scripts')) :
   fs.existsSync(path.join(venvPath, 'bin'));
@@ -55,13 +54,12 @@ const venvExists = isWindows ?
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     console.log(`${colors.yellow}Running: ${command} ${args.join(' ')}${colors.reset}`);
-    
     const process = spawn(command, args, { 
       ...options, 
       stdio: 'inherit',
       shell: true 
     });
-    
+
     process.on('close', (code) => {
       if (code === 0) {
         resolve();
@@ -69,7 +67,7 @@ function runCommand(command, args, options = {}) {
         reject(new Error(`Command failed with exit code ${code}`));
       }
     });
-    
+
     process.on('error', (err) => {
       reject(err);
     });
@@ -81,19 +79,15 @@ async function setupPythonEnvironment() {
   if (!venvExists) {
     console.log(`${colors.yellow}Creating Python virtual environment...${colors.reset}`);
     try {
-      // Create virtual environment
       await runCommand('python', ['-m', 'venv', venvPath], { cwd: backendDir });
-      
       console.log(`${colors.yellow}Installing Python dependencies...${colors.reset}`);
       await installPythonDependencies();
     } catch (error) {
       console.error(`${colors.red}Failed to setup Python environment: ${error.message}${colors.reset}`);
-      console.error(`${colors.yellow}You may need to setup the virtual environment manually. See README.md for instructions.${colors.reset}`);
       process.exit(1);
     }
   } else {
     console.log(`${colors.green}Python virtual environment found.${colors.reset}`);
-    // Ensure dependencies are installed
     await installPythonDependencies();
   }
 }
@@ -102,20 +96,18 @@ async function setupPythonEnvironment() {
 async function installPythonDependencies() {
   try {
     const pipCommand = isWindows ? 
-      `"${path.join(venvPath, 'Scripts', 'pip')}"` : 
-      `"${path.join(venvPath, 'bin', 'pip')}"`;
-    
-    // Install all required packages
+      path.join(venvPath, 'Scripts', 'pip') : 
+      path.join(venvPath, 'bin', 'pip');
+
     await runCommand(pipCommand, [
       'install', 
       'flask', 
       'flask-cors',
       'psycopg2-binary', 
       'pyserial',
-      'mysql-connector-python'  
+      'mysql-connector-python'
     ], { cwd: backendDir });
-    
-    
+
     console.log(`${colors.green}Python dependencies installed.${colors.reset}`);
   } catch (error) {
     console.error(`${colors.red}Failed to install Python dependencies: ${error.message}${colors.reset}`);
@@ -123,67 +115,72 @@ async function installPythonDependencies() {
   }
 }
 
+// Install frontend dependencies if needed
+async function checkFrontendDependencies() {
+  const nodeModulesPath = path.join(frontendDir, 'node_modules');
+  const reactScriptsPath = path.join(nodeModulesPath, '.bin', isWindows ? 'react-scripts.cmd' : 'react-scripts');
+
+  if (!fs.existsSync(nodeModulesPath) || !fs.existsSync(reactScriptsPath)) {
+    console.log(`${colors.yellow}Installing frontend dependencies...${colors.reset}`);
+    try {
+      await runCommand('npm', ['install'], { cwd: frontendDir });
+      await runCommand('npm', ['install', 'axios', '@react-google-maps/api', 'concurrently'], { cwd: frontendDir });
+      console.log(`${colors.green}Frontend dependencies installed.${colors.reset}`);
+    } catch (error) {
+      console.error(`${colors.red}Failed to install frontend dependencies: ${error.message}${colors.reset}`);
+      throw error;
+    }
+  } else {
+    console.log(`${colors.green}Frontend dependencies are up-to-date.${colors.reset}`);
+  }
+}
+
 // Start servers
 async function startServers() {
   try {
-    // Setup Python environment if needed
     await setupPythonEnvironment();
-    
-    // Start backend server
+    await checkFrontendDependencies();
+
     console.log(`${colors.magenta}Starting Flask backend server...${colors.reset}`);
-    
     const pythonExecutable = isWindows ? 
       path.join(venvPath, 'Scripts', 'python') : 
       path.join(venvPath, 'bin', 'python');
-    
-      const backendCommand = isWindows
-      ? `${pythonExecutable} ${path.join(backendDir, 'server.py')}`
-      : `cd "${backendDir}" && "${pythonExecutable}" server.py`;
-    
+
     const backendProcess = spawn(isWindows ? 'cmd.exe' : 'bash', [
       isWindows ? '/c' : '-c',
-      backendCommand
-    ], {
-      stdio: 'pipe',
-      shell: true
-    });
-    
-    
+      `cd "${backendDir}" && "${pythonExecutable}" server.py`
+    ]);
+
     backendProcess.stdout.on('data', (data) => {
       console.log(`${colors.blue}[Backend] ${colors.reset}${data.toString().trim()}`);
     });
-    
+
     backendProcess.stderr.on('data', (data) => {
       console.error(`${colors.red}[Backend Error] ${colors.reset}${data.toString().trim()}`);
     });
-    
-    // Give the backend a moment to start before launching frontend
+
     setTimeout(() => {
-      // Start frontend server
       console.log(`${colors.magenta}Starting React frontend server...${colors.reset}`);
-      
       const frontendProcess = spawn('npm', ['start'], {
         stdio: 'inherit',
         shell: true
       });
-      
-      // Handle process termination
+
       const cleanup = () => {
         console.log(`\n${colors.yellow}Shutting down servers...${colors.reset}`);
         frontendProcess.kill();
         backendProcess.kill();
         process.exit(0);
       };
-      
-      // Listen for termination signals
+
       process.on('SIGINT', cleanup);
       process.on('SIGTERM', cleanup);
     }, 3000);
-    
+
     console.log(`${colors.green}Servers starting! You can access:${colors.reset}`);
     console.log(`${colors.green}- Frontend: http://localhost:3000${colors.reset}`);
     console.log(`${colors.green}- Backend: http://localhost:5000${colors.reset}`);
-    
+
   } catch (error) {
     console.error(`${colors.red}Error starting servers: ${error.message}${colors.reset}`);
     process.exit(1);
