@@ -23,61 +23,6 @@ A web application that helps Virginia Tech students, faculty, and visitors find 
 - pip (latest version)
 - PostgreSQL (v12 or higher)
 
-### Frontend Setup (Ignore if using start script)
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/vt-parking-finder.git
-   cd vt-parking-finder
-   ```
-
-2. Install frontend dependencies:
-   ```bash
-   npm install
-   npm install axios @react-google-maps/api concurrently
-   ```
-
-3. Create a proxy configuration:
-   Add the following to your `package.json` file:
-   ```json
-   "proxy": "http://localhost:5000"
-   ```
-
-### Backend Setup (Ignore if using start script)
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   
-   # On Windows
-   venv\Scripts\activate
-   
-   # On macOS/Linux
-   source venv/bin/activate
-   ```
-
-3. Install backend dependencies:
-   ```bash
-   pip install flask psycopg2 serial
-   ```
-
-4. Configure the database:
-   - Create a PostgreSQL database
-   - Update the database configuration in `db.py`:
-     ```python
-     hostname = 'localhost'
-     database = 'your_database_name'
-     username = 'your_username'
-     password = 'your_password'
-     port_id = 5432
-     ```
-   - Run the SQL setup script:
-     ```bash
-     psql -U your_username -d your_database_name -f db_file.sql
-     ```
 
 ## Running the Application
 
@@ -94,29 +39,6 @@ This script will:
 1. Start the Flask backend server on port 5000
 2. Start the React frontend server on port 3000 
 3. Direct all output to a single console with color coding
-
-### Option 2: Start Servers Separately
-
-#### Start the Backend
-```bash
-# Navigate to the backend directory
-cd backend
-
-# Activate the virtual environment
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-
-# Start the Flask server
-python server.py
-```
-
-#### Start the Frontend
-```bash
-# In the project root directory
-npm start
-```
-
-The frontend will be available at http://localhost:3000
-The backend will be available at http://localhost:5000
 
 ## Project Structure
 
