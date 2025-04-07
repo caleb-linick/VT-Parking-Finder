@@ -1,8 +1,9 @@
 /**
  * ParkingLotDetail.jsx
  * 
+ * Enhanced version with Google Maps navigation integration.
  * This component displays detailed information about a specific parking lot,
- * including its floor plan, real-time occupancy data, and sensor information.
+ * including its floor plan, real-time occupancy data, and navigation options.
  * 
  * Features:
  * - Displays overall lot information (name, availability, status)
@@ -10,15 +11,35 @@
  * - Provides floor selection for multi-level parking garages
  * - Allows users to add/remove the lot from their favorites
  * - Displays information about the sensor technology used
+ * - Provides Google Maps navigation via an integrated button
  * - Handles error states when lot information is not found
  * 
+ * Changelog:
+ * v1.1.0 
+ * - Added Google Maps navigation integration using GoogleMapsNavigation component
+ * - Enhanced parking lot data model to include coordinates and address information
+ * - Added dedicated navigation section in the lot header
+ * - Created new location information section with address details
+ * - Updated styling to accommodate the navigation button
+ * - Improved accessibility for navigation features
+ * - Added hover states for interactive elements
+ * - Ensured consistent styling with other application components
+ * 
+ * v1.0.0 (Original)
+ * - Basic parking lot detail display
+ * - Floor plan visualization
+ * - Floor selection for multi-level garages
+ * - Favorite toggling functionality
+ * - Sensor information display
+ * 
  * @author VT Parking Finder Team
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from './Header';
+import GoogleMapsNavigation from './GoogleMapsNavigation';
 
 /**
  * Mock data for parking lots - in production, this would come from an API
@@ -27,6 +48,8 @@ import Header from './Header';
  * - Number of floors for multi-level garages
  * - Spots per floor
  * - Occupancy data for each spot (0 = empty, 1 = occupied)
+ * - Coordinates for Google Maps integration
+ * - Address information
  */
 const parkingLotData = {
   1: {
@@ -35,6 +58,8 @@ const parkingLotData = {
     availableSpots: 45,
     floors: 4,
     spotsPerFloor: 30,
+    position: [37.2312, -80.4263],
+    address: '155 Perry St, Blacksburg, VA 24061',
     // Mock occupancy data
     occupancy: [
       // Floor 1
@@ -53,6 +78,8 @@ const parkingLotData = {
     availableSpots: 0,
     floors: 1,
     spotsPerFloor: 80,
+    position: [37.2214, -80.4205],
+    address: '675 Washington St, Blacksburg, VA 24061',
     // All spots occupied
     occupancy: [
       Array(80).fill(1)
@@ -64,6 +91,8 @@ const parkingLotData = {
     availableSpots: 35,
     floors: 1,
     spotsPerFloor: 60,
+    position: [37.2220, -80.4267],
+    address: 'Litton Reaves Hall, Blacksburg, VA 24061',
     occupancy: [
       // Mix of available and occupied spots
       [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
@@ -77,6 +106,8 @@ const parkingLotData = {
     availableSpots: 5,
     floors: 1,
     spotsPerFloor: 40,
+    position: [37.2291, -80.4168],
+    address: 'Squires Student Center, 290 College Ave, Blacksburg, VA 24060',
     occupancy: [
       // Mostly occupied with few available spots
       [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -89,6 +120,8 @@ const parkingLotData = {
     availableSpots: 20,
     floors: 1,
     spotsPerFloor: 30,
+    position: [37.2283, -80.4158],
+    address: 'Architecture Annex, Blacksburg, VA 24061',
     occupancy: [
       // Mostly available
       [1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
@@ -223,6 +256,15 @@ const ParkingLotDetail = () => {
               </span>
             </div>
           </div>
+          
+          {/* Google Maps Navigation Button */}
+          <div style={styles.navigationSection}>
+            <GoogleMapsNavigation 
+              name={lotInfo.name}
+              coordinates={lotInfo.position}
+              address={lotInfo.address}
+            />
+          </div>
         </div>
         
         {/* Floor selector for multi-level garages */}
@@ -289,6 +331,17 @@ const ParkingLotDetail = () => {
           <p style={styles.sensorText}>
             This parking lot is equipped with ultrasonic sensors that detect vehicle presence in real-time.
             Data is updated every 5 seconds to provide the most accurate information about parking availability.
+          </p>
+        </div>
+        
+        {/* Location information section */}
+        <div style={styles.locationInfo}>
+          <h3 style={styles.sectionTitle}>Location Information</h3>
+          <p style={styles.locationText}>
+            <strong>Address:</strong> {lotInfo.address}
+          </p>
+          <p style={styles.locationText}>
+            Use the "Navigate to this Parking Lot" button above to get directions via Google Maps.
           </p>
         </div>
       </main>
@@ -362,6 +415,7 @@ const styles = {
   lotStats: {
     display: 'flex',
     justifyContent: 'space-around',
+    marginBottom: '20px',
   },
   statItem: {
     display: 'flex',
@@ -380,6 +434,9 @@ const styles = {
     padding: '5px 10px',
     borderRadius: '4px',
     fontWeight: 'bold',
+  },
+  navigationSection: {
+    width: '100%',
   },
   floorSelector: {
     width: '90%',
@@ -476,10 +533,23 @@ const styles = {
     padding: '20px',
     borderRadius: '8px',
     color: '#333333',
+    marginBottom: '20px',
   },
   sensorText: {
     textAlign: 'center',
     lineHeight: '1.6',
+  },
+  locationInfo: {
+    width: '90%',
+    backgroundColor: '#EEEEEE',
+    padding: '20px',
+    borderRadius: '8px',
+    color: '#333333',
+  },
+  locationText: {
+    textAlign: 'center',
+    lineHeight: '1.6',
+    margin: '5px 0',
   },
   errorMessage: {
     backgroundColor: '#FFDDDD', // Light red

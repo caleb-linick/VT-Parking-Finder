@@ -1,0 +1,73 @@
+VT Parking Finder - CHANGELOG
+Version 1.1.0 (April 2025)
+New Files
+
+GoogleMapsNavigation.jsx
+
+New component for Google Maps integration
+Provides navigation button that redirects to Google Maps
+Handles both mobile and desktop platforms
+Automatically formats coordinates or addresses for navigation
+
+Start.js
+
+Starts the Frontend and backend servers at the same time
+Installs necessary dependencies as well
+
+Updated Files
+
+Login.jsx
+
+Added backend integration with Flask authentication endpoints
+Implemented form data submission to /login and /signup endpoints
+Added error handling for API responses
+Integrated car information collection during signup
+Connected to /car endpoint for vehicle data persistence
+
+
+UserProfile.jsx
+
+Added backend integration for car information management
+Connected edit functionality to /car API endpoint
+Implemented success/error notification system
+Added loading indicators during API operations
+Enhanced UI with improved feedback during updates
+
+
+ParkingLotDetail.jsx
+
+Integrated GoogleMapsNavigation component
+Added location information section with address details
+Enhanced data model to include coordinates and address
+Implemented "Navigate to this Parking Lot" button
+
+
+
+Front-End to Back-End Connections
+The following API connections have been implemented:
+
+Authentication
+
+Frontend Login form → /login endpoint (POST)
+Form data sent as application/x-www-form-urlencoded
+Backend validates credentials using database_module.authenticate()
+Success: User data stored in localStorage
+Failure: Error message displayed to user
+
+
+Registration
+
+Frontend Signup form → /signup endpoint (POST)
+Form data sent as application/x-www-form-urlencoded
+Backend creates user with database_module.signup_user()
+Success: User data stored in localStorage
+Failure: Error message displayed to user
+
+
+Car Information
+
+Frontend Profile edit → /car endpoint (PUT)
+Car data sent as application/json
+Backend updates car info with database_module.update_car()
+Success: User data updated in localStorage
+Failure: Error message displayed to user

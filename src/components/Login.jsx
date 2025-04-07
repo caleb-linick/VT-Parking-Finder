@@ -1,27 +1,43 @@
 /**
  * Login.jsx
  * 
- * This component handles user authentication, allowing users to either
- * log in to an existing account or sign up for a new account.
+ * Enhanced login component with backend integration.
+ * Handles user authentication with the Flask backend.
  * 
  * Features:
  * - Toggle between login and signup modes
  * - Form validation for both modes
- * - Error messaging for form validation
+ * - Error messaging for form validation and server responses
+ * - Backend authentication via API calls
  * - Authentication state management using localStorage
  * - Redirection after successful authentication
- * - Information about the benefits of creating an account
+ * 
+ * Changelog:
+ * v1.1.0 
+ * - Added backend integration with Flask server
+ * - Implemented car information collection during signup process
+ * - Added error handling for backend responses
+ * - Connected to /login and /signup API endpoints
+ * - Added loading state during authentication
+ * - Improved form validation with specific error messages
+ * - Added support for car data submission to /car endpoint
+ * 
+ * v1.0.0 (Original)
+ * - Basic login/signup UI with static implementation
+ * - Frontend-only authentication using localStorage
+ * - Simple form validation
  * 
  * @author VT Parking Finder Team
- * @version 1.0.0
+ * @version 1.1.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
+import axios from 'axios'; // Import axios for API calls
 
 /**
- * Component that handles user authentication
+ * Component that handles user authentication with backend integration
  * 
  * @returns {JSX.Element} The rendered login/signup form
  */
@@ -30,54 +46,113 @@ const Login = () => {
   const [isLogin, setIsLogin] = useState(true); // Toggle between login and signup modes
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [car, setCar] = useState(''); // Added car information field
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   // Hook for programmatic navigation
   const navigate = useNavigate();
 
+  // Check if user is already logged in
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      navigate('/'); // Redirect to home if already logged in
+    }
+  }, [navigate]);
+
   /**
-   * Handle form submission for both login and signup
+   * Handle form submission for both login and signup with backend integration
    * 
    * @param {Event} e - The form submission event
    */
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); // Clear any previous errors
+    setIsLoading(true);
 
     // Basic form validation
     if (!username || !password) {
       setError('Please enter both username and password');
+      setIsLoading(false);
       return;
     }
 
-    // Mock API call - in production, this would be a real backend request
-    setTimeout(() => {
+    // Additional validation for signup mode
+    if (!isLogin && !car) {
+      setError('Please enter your car information for signup');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
       if (isLogin) {
-        // Login flow
-        console.log(`Logging in user: ${username}`);
+        // Login flow - Call backend API
+        const response = await axios.post('/login', {
+          username,
+          password
+        }, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+
+        // Handle successful login
+        console.log('Login successful:', response.data);
         
-        // Mock successful login - in production, this would validate credentials
+        // Store user data in localStorage
         localStorage.setItem('user', JSON.stringify({ 
-          username, 
-          favorites: [1, 3] // Sample favorite parking lots
+          username,
+          favorites: [], // Default empty favorites
+          car: response.data.car || '' // Get car info from response if available
         }));
         
         // Redirect to home page after login
         navigate('/');
       } else {
-        // Signup flow
-        console.log(`Signing up user: ${username}`);
+        // Signup flow - Call backend API
+        const response = await axios.post('/signup', {
+          username,
+          password
+        }, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+
+        // Handle successful signup
+        console.log('Signup successful:', response.data);
         
-        // Mock successful signup - in production, this would create a new user
+        // After signup, update car information
+        await axios.put('/car', JSON.stringify({
+          model: car
+        }), {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        // Store user data in localStorage
         localStorage.setItem('user', JSON.stringify({ 
           username, 
-          favorites: [] // New users start with no favorites
+          favorites: [],
+          car
         }));
         
         // Redirect to home page after signup
         navigate('/');
       }
-    }, 1000); // Simulate network delay
+    } catch (error) {
+      // Handle authentication errors
+      console.error('Authentication error:', error);
+      if (error.response) {
+        setError(error.response.data || 'Authentication failed. Please try again.');
+      } else {
+        setError('Server error. Please try again later.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -125,6 +200,7 @@ const Login = () => {
                 style={styles.input}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             
@@ -136,11 +212,32 @@ const Login = () => {
                 style={styles.input}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             
-            <button type="submit" style={styles.submitButton}>
-              {isLogin ? 'Login' : 'Sign Up'}
+            {/* Car information field (only shown for signup) */}
+            {!isLogin && (
+              <div style={styles.formGroup}>
+                <label htmlFor="car" style={styles.label}>Car Information</label>
+                <input
+                  type="text"
+                  id="car"
+                  style={styles.input}
+                  value={car}
+                  onChange={(e) => setCar(e.target.value)}
+                  placeholder="e.g., 2021 Honda Civic (Silver)"
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+            
+            <button 
+              type="submit" 
+              style={styles.submitButton}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : (isLogin ? 'Login' : 'Sign Up')}
             </button>
           </form>
           
@@ -149,7 +246,7 @@ const Login = () => {
             {isLogin ? (
               <p>After login, you will be able to see your favorite parking spots and quickly access information about them.</p>
             ) : (
-              <p>Sign up to save your favorite parking spots and get personalized parking recommendations based on your usage patterns.</p>
+              <p>Sign up to save your favorite parking spots, register your car information, and get personalized parking recommendations.</p>
             )}
           </div>
         </div>
@@ -243,6 +340,11 @@ const styles = {
     fontWeight: 'bold',
     cursor: 'pointer',
     marginTop: '10px',
+    transition: 'background-color 0.3s',
+    '&:disabled': {
+      backgroundColor: '#CCCCCC',
+      cursor: 'not-allowed',
+    }
   },
   infoText: {
     marginTop: '20px',
