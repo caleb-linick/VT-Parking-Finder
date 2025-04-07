@@ -23,7 +23,7 @@ A web application that helps Virginia Tech students, faculty, and visitors find 
 - pip (latest version)
 - PostgreSQL (v12 or higher)
 
-### Frontend Setup
+### Frontend Setup (Ignore if using start script)
 1. Clone the repository:
    ```bash
    git clone https://github.com/your-username/vt-parking-finder.git
@@ -42,7 +42,7 @@ A web application that helps Virginia Tech students, faculty, and visitors find 
    "proxy": "http://localhost:5000"
    ```
 
-### Backend Setup
+### Backend Setup (Ignore if using start script)
 1. Navigate to the backend directory:
    ```bash
    cd backend
