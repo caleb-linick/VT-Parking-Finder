@@ -109,10 +109,12 @@ async function installPythonDependencies() {
     await runCommand(pipCommand, [
       'install', 
       'flask', 
+      'flask-cors',
       'psycopg2-binary', 
       'pyserial',
       'mysql-connector-python'  
     ], { cwd: backendDir });
+    
     
     console.log(`${colors.green}Python dependencies installed.${colors.reset}`);
   } catch (error) {
@@ -134,10 +136,18 @@ async function startServers() {
       path.join(venvPath, 'Scripts', 'python') : 
       path.join(venvPath, 'bin', 'python');
     
+      const backendCommand = isWindows
+      ? `${pythonExecutable} ${path.join(backendDir, 'server.py')}`
+      : `cd "${backendDir}" && "${pythonExecutable}" server.py`;
+    
     const backendProcess = spawn(isWindows ? 'cmd.exe' : 'bash', [
       isWindows ? '/c' : '-c',
-      `cd "${backendDir}" && "${pythonExecutable}" server.py`
-    ]);
+      backendCommand
+    ], {
+      stdio: 'pipe',
+      shell: true
+    });
+    
     
     backendProcess.stdout.on('data', (data) => {
       console.log(`${colors.blue}[Backend] ${colors.reset}${data.toString().trim()}`);

@@ -44,6 +44,12 @@ create table users (
     car VARCHAR(100)
 );
 
+CREATE TABLE favorites (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id),
+    spot_id BIGINT REFERENCES spot(id)
+);
+
 
 
 -- Parking Data
