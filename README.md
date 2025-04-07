@@ -81,7 +81,6 @@ A web application that helps Virginia Tech students, faculty, and visitors find 
 
 ## Running the Application
 
-### Option 1: Start Everything at Once (Recommended)
 Run both frontend and backend servers with a single command:
 ```bash
 npm run start-all
