@@ -99,36 +99,14 @@ def update_car(mydb, data, username):
     mydb.commit()
     return 'complete'
 
-# Insert ultrasonic sensor status (True/False) into database
-def insert_sensor_status(mydb, is_occupied):
+def insert_ultrasonic_data(mydb, distance, is_occupied):
     cur = mydb.cursor()
-    cur.execute("INSERT INTO ultrasonic_status (is_occupied) VALUES (%s)", (is_occupied,))
+    cur.execute(
+        "INSERT INTO ultrasonic_data (distance, is_occupied) VALUES (%s, %s)",
+        (distance, is_occupied)
+    )
     mydb.commit()
     cur.close()
-
-# Read data from the Arduino through the serial port
-def read_from_serial():
-    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
-    
-    try:
-        while True:
-            line = ser.readline().decode('utf-8').strip()
-            if line:
-                try:
-                    is_occupied = bool(int(line))  # Convert to boolean (0 -> False, 1 -> True)
-                    print(f"Object detected: {is_occupied}")
-
-                    # Store data in the database
-                    conn = connectdatabase()
-                    insert_sensor_status(conn, is_occupied)
-                    conn.close()
-                except ValueError:
-                    print("Invalid data received:", line)
-    except KeyboardInterrupt:
-        print("Stopping serial read")
-    finally:
-        ser.close()
-
 
 # Run serial data reading
 if __name__ == "__main__":
