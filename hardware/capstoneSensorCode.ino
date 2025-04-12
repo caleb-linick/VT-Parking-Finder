@@ -3,6 +3,7 @@
 #define TRIG_PIN 12
 #define ECHO_PIN 13
 #define DISTANCE_THRESHOLD 10  // 60 cm (approximately 2 feet)
+#define SENSOR_ID 1
 const char* ssid = "VT Open WiFi";      // Replace with your Wi-Fi name
 const char* password = "";
 const char* serverURL = "http://100.66.204.218:5000/upload";
@@ -44,8 +45,10 @@ void loop() {
         http.begin(serverURL);
         http.addHeader("Content-Type", "application/json");
 
-        String payload = "{"distance": " + String(distance, 2) + ", "is_occupied": " + (is_occupied ? "true" : "false") + "}";
-        int httpResponseCode = http.POST(payload);
+        String payload = "{\"sensor_id\": " + String(SENSOR_ID) +
+        ", \"distance\": " + String(distance, 2) +
+        ", \"is_occupied\": " + (is_occupied ? "true" : "false") + "}";
+        
         if (httpResponseCode > 0) {
             String response = http.getString();
             Serial.println("Server response: " + response);

@@ -99,15 +99,18 @@ def update_car():
 def receive_sensor_data():
     try:
         data = request.get_json()
+        sensor_id = data.get("sensor_id")
         distance = data.get("distance")
         is_occupied = data.get("is_occupied")
-        print(f"Received sensor data: distance={distance}, is_occupied={is_occupied}")
+        print(f"Received sensor data: sensor_id={sensor_id}, distance={distance}, is_occupied={is_occupied}")
 
-        database_module.insert_ultrasonic_data(mydb, distance, is_occupied)
+        # Pass sensor_id to the database module
+        database_module.insert_ultrasonic_data(mydb, distance, is_occupied, sensor_id)
         return {"status": "success"}, 200
     except Exception as e:
         print("Error:", e)
         return {"status": "error", "message": str(e)}, 500
+
         
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)  # Accessible on your local network

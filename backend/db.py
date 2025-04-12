@@ -99,14 +99,15 @@ def update_car(mydb, data, username):
     mydb.commit()
     return 'complete'
 
-def insert_ultrasonic_data(mydb, distance, is_occupied):
+def insert_ultrasonic_data(mydb, distance, is_occupied, sensor_id):
     cur = mydb.cursor()
     cur.execute(
-        "INSERT INTO ultrasonic_data (distance, is_occupied) VALUES (%s, %s)",
-        (distance, is_occupied)
+        "INSERT INTO ultrasonic_data (sensor_id, distance, is_occupied) VALUES (%s, %s, %s)",
+        (sensor_id, distance, is_occupied)
     )
     mydb.commit()
     cur.close()
+
 
 # Run serial data reading
 if __name__ == "__main__":
