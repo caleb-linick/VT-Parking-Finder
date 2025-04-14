@@ -1,24 +1,41 @@
 /**
  * UserProfile.jsx
  * 
- * This component displays and manages the user's profile information,
- * including personal details and favorite parking locations.
+ * Enhanced profile component with car management feature.
  * 
  * Features:
  * - Display user information (username, car information)
- * - Allow editing of profile information
+ * - Allow editing of car information with backend integration
  * - Show list of favorite parking locations with quick access
  * - Provide logout functionality
  * - Authentication verification (redirects to login if not authenticated)
  * - Handle empty states for profile sections
  * 
+ * Changelog:
+ * v1.1.0 
+ * - Added backend integration for car information updates
+ * - Connected to /car API endpoint for updating car details
+ * - Added loading states during API calls
+ * - Implemented success/error messaging system
+ * - Enhanced UI with helpful text describing car information format
+ * - Improved error handling for API failures
+ * - Added more detailed empty state for favorites section
+ * - Added animation for loading spinner
+ * 
+ * v1.0.0 (Original)
+ * - Basic profile display with frontend-only data storage
+ * - Simple car information editing without backend persistence
+ * - Basic favorites display with static navigation
+ * - Simple logout functionality
+ * 
  * @author VT Parking Finder Team
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
+import axios from 'axios'; // Import axios for API calls
 
 /**
  * Component that displays and manages user profile information
@@ -30,6 +47,9 @@ const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [carInfo, setCarInfo] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   
   // Navigation hook for redirects
   const navigate = useNavigate();
@@ -62,20 +82,46 @@ const UserProfile = () => {
 
   /**
    * Update user profile information
-   * Saves changes to localStorage and updates state
+   * Saves changes to localStorage and backend
    */
-  const handleUpdateProfile = () => {
+  const handleUpdateProfile = async () => {
     if (user) {
-      // Create updated user object with new car information
-      const updatedUser = {
-        ...user,
-        car: carInfo
-      };
+      setIsLoading(true);
+      setError('');
+      setSuccessMessage('');
       
-      // Update localStorage and state
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-      setIsEditing(false);
+      try {
+        // Call API to update car information in the database
+        await axios.put('/car', JSON.stringify({
+          model: carInfo
+        }), {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        // Create updated user object with new car information
+        const updatedUser = {
+          ...user,
+          car: carInfo
+        };
+        
+        // Update localStorage and state
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        setIsEditing(false);
+        setSuccessMessage('Car information updated successfully!');
+        
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
+      } catch (error) {
+        console.error('Error updating car information:', error);
+        setError('Failed to update car information. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -83,7 +129,12 @@ const UserProfile = () => {
    * Show loading state while user data is being fetched
    */
   if (!user) {
-    return <div>Loading...</div>;
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.loadingSpinner}></div>
+        <p>Loading profile...</p>
+      </div>
+    );
   }
 
   return (
@@ -92,6 +143,16 @@ const UserProfile = () => {
       <main style={styles.main}>
         <div style={styles.profileContainer}>
           <h1 style={styles.title}>Your Profile</h1>
+          
+          {/* Success message */}
+          {successMessage && (
+            <div style={styles.successMessage}>{successMessage}</div>
+          )}
+          
+          {/* Error message */}
+          {error && (
+            <div style={styles.errorMessage}>{error}</div>
+          )}
           
           <div style={styles.profileCard}>
             {/* Profile header with avatar and username */}
@@ -116,21 +177,28 @@ const UserProfile = () => {
                       onChange={(e) => setCarInfo(e.target.value)}
                       style={styles.input}
                       placeholder="e.g., 2021 Honda Civic (Silver)"
+                      disabled={isLoading}
                     />
+                    <small style={styles.helpText}>
+                      Enter your car make, model, and color to help identify your car in the parking lot.
+                    </small>
                   </div>
                   <div style={styles.buttonGroup}>
                     <button 
                       onClick={handleUpdateProfile} 
                       style={styles.saveButton}
+                      disabled={isLoading}
                     >
-                      Save Changes
+                      {isLoading ? 'Saving...' : 'Save Changes'}
                     </button>
                     <button 
                       onClick={() => {
                         setIsEditing(false);
                         setCarInfo(user.car || '');
+                        setError('');
                       }} 
                       style={styles.cancelButton}
+                      disabled={isLoading}
                     >
                       Cancel
                     </button>
@@ -138,7 +206,7 @@ const UserProfile = () => {
                 </div>
               ) : (
                 // View mode: display current profile information
-                <>
+                <div style={styles.detailsView}>
                   <div style={styles.detailItem}>
                     <span style={styles.detailLabel}>Car Information:</span>
                     <span style={styles.detailValue}>{user.car || 'Not provided'}</span>
@@ -147,9 +215,9 @@ const UserProfile = () => {
                     onClick={() => setIsEditing(true)} 
                     style={styles.editButton}
                   >
-                    Edit Profile
+                    Edit Car Information
                   </button>
-                </>
+                </div>
               )}
             </div>
             
@@ -184,6 +252,8 @@ const UserProfile = () => {
                 // Empty state for favorites
                 <p style={styles.emptyFavorites}>
                   You haven't added any favorite parking locations yet.
+                  <br />
+                  <a href="/parking-lots" style={styles.link}>Browse parking lots</a> to add favorites.
                 </p>
               )}
             </div>
@@ -261,6 +331,10 @@ const styles = {
     borderRadius: '8px',
     marginBottom: '30px',
   },
+  detailsView: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
   detailItem: {
     marginBottom: '15px',
   },
@@ -282,6 +356,7 @@ const styles = {
     fontWeight: 'bold',
     cursor: 'pointer',
     marginTop: '10px',
+    alignSelf: 'flex-start',
   },
   editForm: {
     width: '100%',
@@ -301,6 +376,12 @@ const styles = {
     border: 'none',
     backgroundColor: '#FFFFFF',
     color: '#333333',
+  },
+  helpText: {
+    display: 'block',
+    marginTop: '5px',
+    fontSize: '12px',
+    opacity: 0.8,
   },
   buttonGroup: {
     display: 'flex',
@@ -354,6 +435,10 @@ const styles = {
     fontStyle: 'italic',
     opacity: 0.8,
   },
+  link: {
+    color: '#FFFFFF',
+    textDecoration: 'underline',
+  },
   logoutButton: {
     width: '100%',
     backgroundColor: '#333333', // Dark gray
@@ -363,6 +448,39 @@ const styles = {
     borderRadius: '4px',
     fontWeight: 'bold',
     cursor: 'pointer',
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    backgroundColor: '#800000', // VT Maroon
+    color: '#FFFFFF',
+  },
+  loadingSpinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '50%',
+    borderTop: '4px solid #FFFFFF',
+    animation: 'spin 1s linear infinite',
+  },
+  successMessage: {
+    backgroundColor: '#DFF2BF', // Light green
+    color: '#4F8A10', // Dark green
+    padding: '10px',
+    borderRadius: '4px',
+    marginBottom: '20px',
+    textAlign: 'center',
+  },
+  errorMessage: {
+    backgroundColor: '#FFBABA', // Light red
+    color: '#D8000C', // Dark red
+    padding: '10px',
+    borderRadius: '4px',
+    marginBottom: '20px',
+    textAlign: 'center',
   },
 };
 

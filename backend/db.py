@@ -86,6 +86,31 @@ def update_entity(mydb, data):
     mydb.commit()
     return 'complete'
 
+# Gets the user id
+def get_user_id(mydb, username):
+    mycursor = mydb.cursor()
+    mycursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+    result = mycursor.fetchone()
+    mycursor.close()
+    return result[0] if result else None
+
+# Gets the user favorites
+def get_user_favorites(mydb, user_id):
+    mycursor = mydb.cursor()
+    mycursor.execute("SELECT spot_id FROM favorites WHERE user_id = %s", (user_id,))
+    favorites = [row[0] for row in mycursor.fetchall()]
+    mycursor.close()
+    return favorites
+
+# Sets the user
+def set_user_favorites(mydb, user_id, spot_ids):
+    mycursor = mydb.cursor()
+    mycursor.execute("DELETE FROM favorites WHERE user_id = %s", (user_id,))
+    for spot_id in spot_ids:
+        mycursor.execute("INSERT INTO favorites (user_id, spot_id) VALUES (%s, %s)", (user_id, spot_id))
+    mydb.commit()
+    mycursor.close()
+
 # Functionality for updating the car associated with an account, will be used when the user enters a car model into the form
 def update_car(mydb, data, username):
     data_dict = json.loads(data)
