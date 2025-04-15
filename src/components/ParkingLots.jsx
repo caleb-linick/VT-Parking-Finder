@@ -110,26 +110,42 @@ const ParkingLots = () => {
    * Toggle a parking lot's favorite status
    * @param {number} lotId - The ID of the parking lot to toggle
    */
-  const toggleFavorite = (lotId) => {
+  const toggleFavorite = async (lotId) => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      let favorites = user.favorites || [];
-      
-      if (isFavorite(lotId)) {
-        // Remove from favorites
-        favorites = favorites.filter(id => id !== lotId);
-      } else {
-        // Add to favorites
-        favorites.push(lotId);
-      }
-      
-      // Update localStorage and state
-      user.favorites = favorites;
-      localStorage.setItem('user', JSON.stringify(user));
-      setUserFavorites(favorites);
-    } else {
+    if (!userStr) {
       alert('Please log in to save favorites');
+      return;
+    }
+    
+    const user = JSON.parse(userStr);
+    let favorites = user.favorites || [];
+  
+    // Compute the updated favorites list
+    if (favorites.includes(lotId)) {
+      // Remove the lot if it's already favorited
+      favorites = favorites.filter(id => id !== lotId);
+    } else {
+      favorites.push(lotId);
+    }
+  
+    // Send the new favorites list to the backend
+    try {
+      const response = await fetch('/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorites })
+      });
+  
+      if (response.ok) {
+        // Update the user's object favorites 
+        user.favorites = favorites;
+        localStorage.setItem('user', JSON.stringify(user));
+        setUserFavorites(favorites); 
+      } else {
+        console.error('Backend update failed:', response.status);
+      }
+    } catch (error) {
+      console.error('Error updating favorites:', error);
     }
   };
 

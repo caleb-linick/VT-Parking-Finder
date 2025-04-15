@@ -47,17 +47,41 @@ const FavoriteParking = () => {
     if (userStr) {
       const user = JSON.parse(userStr);
       setIsLoggedIn(true);
-      
-      // Get favorite lot details
-      if (user.favorites && user.favorites.length > 0) {
-        // Filter parkingLots to only include user's favorites
-        const favoriteLots = parkingLots.filter(lot => 
-          user.favorites.includes(lot.id)
-        );
-        setUserFavorites(favoriteLots);
-      }
     }
   }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      const fetchFavorites = async () => {
+        try {
+          const response = await fetch('/favorites', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          if (!response.ok) {
+            throw new Error(`Error fetching favorites, status: ${response.status}`);
+          }
+          const data = await response.json();
+          // Map the spot IDs to the corresponding parking lot details.
+          const favoriteLots = parkingLots.filter(lot => data.includes(lot.id));
+          // Updates the favorites
+          setUserFavorites(favoriteLots);
+
+          let user = JSON.parse(localStorage.getItem('user'));
+          user.favorites = data;
+          // set the favorites to the logged in user
+          localStorage.setItem('user', JSON.stringify(user));
+
+        } catch (error) {
+          console.error('Error fetching favorites:', error);
+        }
+      };
+
+      fetchFavorites();
+    }
+  }, [isLoggedIn]);
 
   /**
    * Render login prompt if user is not authenticated

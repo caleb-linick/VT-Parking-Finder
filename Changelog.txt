@@ -33,6 +33,10 @@ Implemented success/error notification system
 Added loading indicators during API operations
 Enhanced UI with improved feedback during updates
 
+Updated favorites section to reflect the current favorites persisted on the backend.
+Display now dynamically reads from localStorage updated via the backend, ensuring the favorites list is consistent with user actions.
+
+
 
 ParkingLotDetail.jsx
 
@@ -41,7 +45,18 @@ Added location information section with address details
 Enhanced data model to include coordinates and address
 Implemented "Navigate to this Parking Lot" button
 
+FavoriteParking.jsx
 
+Integrated backend connection for favorites.
+Added a useEffect hook to check the user’s login status and fetch favorite spot IDs via the GET /favorites endpoint.
+Mapped returned favorite IDs to parking lot details for dynamic display.
+Updated localStorage with fresh favorites data to ensure UI consistency after re-login.
+
+ParkingLots.jsx
+
+Enhanced favorites toggling functionality.
+Updated the toggleFavorite function to send a POST request to /favorites when the user favorites or unfavorites a parking lot.
+On successful backend update, synchronized local state and localStorage to persist changes across sessions.
 
 Front-End to Back-End Connections
 The following API connections have been implemented:
