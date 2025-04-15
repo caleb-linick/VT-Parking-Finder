@@ -20,7 +20,7 @@ CREATE TABLE sensor (
 --     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- );
 
-CREATE TABLE sensor_data (
+CREATE TABLE ultrasonic_data (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     distance FLOAT NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
