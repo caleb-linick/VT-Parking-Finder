@@ -48,6 +48,8 @@ void loop() {
         String payload = "{\"sensor_id\": " + String(SENSOR_ID) +
         ", \"distance\": " + String(distance, 2) +
         ", \"is_occupied\": " + (is_occupied ? "true" : "false") + "}";
+
+        int httpResponseCode = http.POST(payload);
         
         if (httpResponseCode > 0) {
             String response = http.getString();
