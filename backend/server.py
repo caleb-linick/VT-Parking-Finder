@@ -121,6 +121,19 @@ def update_favorites():
     #    print("Error:", e)
     #    return {"status": "error", "message": str(e)}, 500
 
+@app.route('/upload', methods=['POST'])
+def receive_sensor_data():
+     try:
+         data = request.get_json()
+         distance = data.get("distance")
+         is_occupied = data.get("is_occupied")
+         print(f"Received sensor data: distance={distance}, is_occupied={is_occupied}")
+ 
+         database_module.insert_ultrasonic_data(mydb, distance, is_occupied)
+         return {"status": "success"}, 200
+     except Exception as e:
+         print("Error:", e)
+         return {"status": "error", "message": str(e)}, 500
         
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)  # Accessible on your local network
