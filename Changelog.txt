@@ -45,6 +45,9 @@ Added location information section with address details
 Enhanced data model to include coordinates and address
 Implemented "Navigate to this Parking Lot" button
 
+Added sensor integration for demo - connected sensor to Squires lot block 1
+Implemented useEffect to fetch the sensor data
+
 FavoriteParking.jsx
 
 Integrated backend connection for favorites.

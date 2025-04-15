@@ -165,6 +165,48 @@ const ParkingLotDetail = () => {
     }
   }, [id]);
 
+  // Poll sensor data for sensor id 1 and update the first block for Squires lot (id "4") 
+  // since we only have one sensor
+  useEffect(() => {
+    // Only run this polling for Squires lot - for demo 
+    if (lotInfo && id === "4") {
+      const fetchSensorData = async () => {
+        try {
+          // Fetch sensor data for sensor id 1 from backend
+          const response = await fetch('/sensor-data?sensor_id=1');
+          if (!response.ok) {
+            throw new Error('Failed to fetch sensor data');
+          }
+          const sensorData = await response.json();
+
+          // Update the first spot on the first floor based on sensor state:
+          // sensorData.is_occupied should be a boolean (true: spot is occupied, false: available)
+          setLotInfo(prevLotInfo => {
+            // Clone the occupancy array of the first floor to not affect the existing one
+            const updatedFloor = [...prevLotInfo.occupancy[0]];
+
+            // Update the designated block (the first one)
+            updatedFloor[0] = sensorData.is_occupied ? 1 : 0;
+
+            // Create a new occupancy array replacing the first floor only
+            const updatedOccupancy = prevLotInfo.occupancy.map((floorArray, floorIndex) =>
+              floorIndex === 0 ? updatedFloor : floorArray
+            );
+
+            return { ...prevLotInfo, occupancy: updatedOccupancy };
+          });
+        } catch (error) {
+          console.error('Error fetching sensor data:', error);
+        }
+      };
+
+      // Poll every 5 seconds - can be changed
+      const intervalId = setInterval(fetchSensorData, 5000);
+      return () => clearInterval(intervalId);
+    }
+  }, [lotInfo, id]);
+
+
   /**
    * Toggle the favorite status of the current parking lot
    */
