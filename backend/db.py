@@ -12,7 +12,7 @@ conn = None
 cur = None
 
 # Serial port settings (Update based on your system)
-SERIAL_PORT = "COM4"  # Change to "/dev/ttyUSB0" for Linux/macOS
+# SERIAL_PORT = "COM4"  # Change to "/dev/ttyUSB0" for Linux/macOS
 BAUD_RATE = 9600
 
 # Connect to MySQL = returns a connection to the postgresql db
