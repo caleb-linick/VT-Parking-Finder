@@ -32,9 +32,10 @@ create table spot (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     type VARCHAR(100),
     occupancy BOOLEAN NOT NULL,
+    latitude DECIMAL(12, 10) NOT NULL,
+    longitude DECIMAL(13, 10) NOT NULL,
     lot_id BIGINT REFERENCES parking(id),
     sensor_id BIGINT REFERENCES sensor(id)
-    -- occupancy BOOLEAN REFERENCES sensor_data(is_occupied)
 );
 
 create table users ( 
@@ -65,13 +66,13 @@ INSERT INTO sensor (sensor_type, sensor_status, last_checkup_date) VALUES
 ('Ultrasonic Sensor', 'Operational', '2025-03-20 16:00:00');
 
 -- Spot Data with Updated Types
-INSERT INTO spot (occupancy, type, lot_id, sensor_id) VALUES
-(FALSE, 'Visitor Only', 1, 1),
-(TRUE, 'Electric Vehicle', 1, 2),
-(FALSE, 'Faculty', 2, 3),
-(TRUE, 'Graduate Students', 3, 1),
-(TRUE, 'Students with Parking Passes', 3, 2),
-(FALSE, 'Free to Use by Anyone at Any Time', 2, 1);
+-- INSERT INTO spot (occupancy, type, lot_id, sensor_id) VALUES
+-- (FALSE, 'Visitor Only', 1, 1),
+-- (TRUE, 'Electric Vehicle', 1, 2),
+-- (FALSE, 'Faculty', 2, 3),
+-- (TRUE, 'Graduate Students', 3, 1),
+-- (TRUE, 'Students with Parking Passes', 3, 2),
+-- (FALSE, 'Free to Use by Anyone at Any Time', 2, 1);
 
 -- insert into parking (name, address, location) values ('Perry Street Parking Garage', '1330 Perry Street, Blacksburg, VA, 24060', 'Virginia Tech');
 
