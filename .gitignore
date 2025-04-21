@@ -1,0 +1,69 @@
+# Development environments
+/backend/venv/
+/.vscode/
+/.idea/
+/.vs/
+*.code-workspace
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Node dependencies
+/node_modules/
+/.pnp
+.pnp.js
+
+# Build outputs
+/build/
+/dist/
+/.next/
+/out/
+
+# Python
+/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+/backend/__pycache__/
+/backend/*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+logs/
+
+# JWT and security
+*jwt.key*
+*rsa_private.pem
+*rsa_public.pem
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Temporary files
+*.swp
+*.swo
+.temp/
+.tmp/
+.cache/
