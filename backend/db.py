@@ -4,6 +4,7 @@ import json
 import jwt
 import datetime
 import os
+import pathlib
 from hashlib import sha256
 
 # JWT Configuration with static secret for testing
@@ -23,16 +24,71 @@ cur = None
 # SERIAL_PORT = "COM4"  # Change to "/dev/ttyUSB0" for Linux/macOS
 BAUD_RATE = 9600
 
+def initialize_database(conn):
+    """Initialize the database with tables from db_file.sql"""
+    cur = conn.cursor()
+    try:
+        # Get the directory of the current file
+        current_dir = pathlib.Path(__file__).parent.absolute()
+        sql_file_path = os.path.join(current_dir, 'db_file.sql')
+        
+        # Read SQL from db_file.sql
+        with open(sql_file_path, 'r') as file:
+            sql_script = file.read()
+        
+        # Execute the SQL script
+        cur.execute(sql_script)
+        conn.commit()
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+        conn.rollback()
+    finally:
+        cur.close()
+
+def ensure_tables_exist(conn):
+    """Check if required tables exist and create them if they don't"""
+    required_tables = ['users', 'parking', 'spot', 'sensor', 'ultrasonic_data', 'favorites']
+    cur = conn.cursor()
+    
+    try:
+        # Check each table existence
+        for table in required_tables:
+            cur.execute(f"SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = '{table}')")
+            table_exists = cur.fetchone()[0]
+            if not table_exists:
+                print(f"Table '{table}' doesn't exist.")
+                return False
+        return True
+    except Exception as e:
+        print(f"Error checking tables: {e}")
+        return False
+    finally:
+        cur.close()
+
 # Connect to MySQL = returns a connection to the postgresql db
 def connectdatabase():
-    conn = psycopg2.connect(
-        host = hostname,
-        dbname = database,
-        user = username,
-        password = password,
-        port = port_id
-    )
-    return conn
+    try:
+        conn = psycopg2.connect(
+            host = hostname,
+            dbname = database,
+            user = username,
+            password = password,
+            port = port_id
+        )
+        
+        # Check if tables exist, if not initialize the database
+        tables_exist = ensure_tables_exist(conn)
+        if not tables_exist:
+            print("Required tables don't exist, initializing database...")
+            initialize_database(conn)
+        
+        return conn
+    except psycopg2.OperationalError as e:
+        print(f"Database connection error: {e}")
+        print("Please make sure PostgreSQL is running and the database exists.")
+        raise
+
 
 # Used to execute simple queries using the connection
 def querydb(querystr, conn):

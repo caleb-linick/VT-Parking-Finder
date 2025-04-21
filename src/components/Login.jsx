@@ -100,11 +100,16 @@ const Login = () => {
           }
         });
 
-        // Handle successful login - save JWT token
-        saveAuthData(response.data);
-        
-        // Redirect to home page after login
-        navigate('/');
+        // Verify the response contains required data
+        if (response.data && response.data.token) {
+          // Handle successful login - save JWT token
+          saveAuthData(response.data);
+          
+          // Redirect to home page after login
+          navigate('/');
+        } else {
+          setError('Invalid response from server. Please try again.');
+        }
       } else {
         // Signup flow - Call backend API
         const response = await axios.post('/signup', {
@@ -116,35 +121,51 @@ const Login = () => {
           }
         });
 
-        // Save auth data including token
-        saveAuthData(response.data);
-        
-        // After signup, update car information if provided
-        if (car) {
-          await axios.put('/car', JSON.stringify({
-            model: car
-          }), {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${response.data.token}`
-            }
-          });
+        // Verify the response contains required data
+        if (response.data && response.data.token) {
+          // Save auth data including token
+          saveAuthData(response.data);
           
-          // Update car info in localStorage
-          const userData = JSON.parse(localStorage.getItem('user'));
-          userData.car = car;
-          localStorage.setItem('user', JSON.stringify(userData));
+          // After signup, update car information if provided
+          if (car) {
+            try {
+              await axios.put('/car', {
+                model: car
+              }, {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${response.data.token}`
+                }
+              });
+              
+              // Update car info in localStorage
+              const userData = JSON.parse(localStorage.getItem('user'));
+              userData.car = car;
+              localStorage.setItem('user', JSON.stringify(userData));
+            } catch (carError) {
+              console.error('Error updating car information:', carError);
+              // Don't block the signup flow for car update errors
+            }
+          }
+          
+          // Redirect to home page after signup
+          navigate('/');
+        } else {
+          setError('Invalid response from server. Please try again.');
         }
-        
-        // Redirect to home page after signup
-        navigate('/');
       }
     } catch (error) {
       // Handle authentication errors
       console.error('Authentication error:', error);
       if (error.response) {
-        setError(error.response.data || 'Authentication failed. Please try again.');
+        // The server responded with an error status code
+        const errorMessage = error.response.data?.error || error.response.data || 'Authentication failed. Please try again.';
+        setError(typeof errorMessage === 'string' ? errorMessage : 'Authentication failed. Please try again.');
+      } else if (error.request) {
+        // The request was made but no response was received
+        setError('No response from server. Please check your connection and try again.');
       } else {
+        // Something happened in setting up the request
         setError('Server error. Please try again later.');
       }
     } finally {

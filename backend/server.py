@@ -54,10 +54,13 @@ def index():
 def login():
     data = request.get_json()
     if not data:
-        return "Invalid request - no JSON body found", 400
+        return jsonify({"success": False, "error": "Invalid request - no JSON body found"}), 400
 
     username = data.get('username')
     password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({"success": False, "error": "Username and password are required"}), 400
 
     auth_result = database_module.authenticate(mydb, username, password)
     
@@ -65,33 +68,40 @@ def login():
         # Return JWT token and user information
         car_info = database_module.get_user_info(mydb, username)
         response = {
-            'status': 'success',
+            'success': True,
             'token': auth_result.get('token'),
             'user_id': auth_result.get('user_id'),
             'username': username,
-            'car': car_info[1] if car_info else ''
+            'car': car_info[1] if car_info and len(car_info) > 1 else ''
         }
         return jsonify(response), 200
     else:
-        return "Incorrect Password or Username. Try again", 401
+        return jsonify({"success": False, "error": "Incorrect username or password. Please try again."}), 401
 
 # Signup endpoint (handles JSON requests)
 @app.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
     if not data:
-        return "Invalid request - no JSON body found", 400
+        return jsonify({"success": False, "error": "Invalid request - no JSON body found"}), 400
 
     username = data.get('username')
     password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({"success": False, "error": "Username and password are required"}), 400
 
-    if database_module.user_exists(mydb, username):
-        return jsonify({"success": False, "error": "This user already has an account"}), 409
     try:
+        # Check if the users table exists (auto-create if needed)
+        database_module.ensure_tables_exist(mydb)
+        
+        if database_module.user_exists(mydb, username):
+            return jsonify({"success": False, "error": "This username is already taken. Please choose another."}), 409
+        
         result = database_module.signup_user(mydb, username, password)
         if result:
             response = {
-                'status': 'success',
+                'success': True,
                 'token': result.get('token'),
                 'user_id': result.get('user_id'),
                 'username': username,
@@ -99,9 +109,10 @@ def signup():
             }
             return jsonify(response), 200
         else:
-            return "Signup Failed", 400
-    except mysql.connector.IntegrityError as e:
-        return f"This user already has an account. Please sign in.", 500
+            return jsonify({"success": False, "error": "Signup failed. Please try again."}), 400
+    except Exception as e:
+        print(f"Signup error: {e}")
+        return jsonify({"success": False, "error": f"An error occurred: {str(e)}"}), 500
 
 @app.route('/logout')
 def logout():
