@@ -1,7 +1,7 @@
 /**
  * UserProfile.jsx
  * 
- * Enhanced profile component with car management feature.
+ * Component with JWT authentication and car management.
  * 
  * Features:
  * - Display user information (username, car information)
@@ -11,34 +11,17 @@
  * - Authentication verification (redirects to login if not authenticated)
  * - Handle empty states for profile sections
  * 
- * Changelog:
- * v1.1.0 
- * - Added backend integration for car information updates
- * - Connected to /car API endpoint for updating car details
- * - Added loading states during API calls
- * - Implemented success/error messaging system
- * - Enhanced UI with helpful text describing car information format
- * - Improved error handling for API failures
- * - Added more detailed empty state for favorites section
- * - Added animation for loading spinner
- * 
- * v1.0.0 (Original)
- * - Basic profile display with frontend-only data storage
- * - Simple car information editing without backend persistence
- * - Basic favorites display with static navigation
- * - Simple logout functionality
- * 
  * @author VT Parking Finder Team
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
-import axios from 'axios'; // Import axios for API calls
+import apiService from '../services/apiService';
 
 /**
- * Component that displays and manages user profile information
+ * Component that displays and manages user profile with JWT authentication
  * 
  * @returns {JSX.Element} The rendered user profile component
  */
@@ -59,30 +42,36 @@ const UserProfile = () => {
    * redirect to login if user is not authenticated
    */
   useEffect(() => {
-    // Get user from localStorage
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const userData = JSON.parse(userStr);
+    // Check authentication status using JWT
+    if (!apiService.isAuthenticated()) {
+      navigate('/login');
+      return;
+    }
+    
+    // Get user from the service
+    const userData = apiService.getUser();
+    if (userData) {
       setUser(userData);
       setCarInfo(userData.car || '');
     } else {
-      // Redirect to login if not logged in
+      // If token exists but no user data, fetch it
+      apiService.logout();
       navigate('/login');
     }
   }, [navigate]);
 
   /**
-   * Handle user logout
-   * Removes user data from localStorage and redirects to home page
+   * Handle user logout with JWT
+   * Removes token and user data, then redirects to home page
    */
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    apiService.logout();
     navigate('/');
   };
 
   /**
    * Update user profile information
-   * Saves changes to localStorage and backend
+   * Saves changes using JWT authentication
    */
   const handleUpdateProfile = async () => {
     if (user) {
@@ -91,24 +80,15 @@ const UserProfile = () => {
       setSuccessMessage('');
       
       try {
-        // Call API to update car information in the database
-        await axios.put('/car', JSON.stringify({
-          model: carInfo
-        }), {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        // Call API to update car information with JWT token
+        await apiService.updateCar(carInfo);
         
-        // Create updated user object with new car information
-        const updatedUser = {
+        // Update local user state
+        setUser({
           ...user,
           car: carInfo
-        };
+        });
         
-        // Update localStorage and state
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setUser(updatedUser);
         setIsEditing(false);
         setSuccessMessage('Car information updated successfully!');
         
@@ -118,7 +98,24 @@ const UserProfile = () => {
         }, 3000);
       } catch (error) {
         console.error('Error updating car information:', error);
-        setError('Failed to update car information. Please try again.');
+        
+        // Handle different error scenarios
+        if (error.response) {
+          if (error.response.status === 401) {
+            setError('Your session has expired. Please log in again.');
+            // Clear auth data on authentication failure
+            setTimeout(() => {
+              apiService.logout();
+              navigate('/login');
+            }, 2000);
+          } else {
+            setError(`Failed to update car information: ${error.response.data || 'Server error'}`);
+          }
+        } else if (error.request) {
+          setError('Could not connect to the server. Please check your connection and try again.');
+        } else {
+          setError('An unexpected error occurred. Please try again later.');
+        }
       } finally {
         setIsLoading(false);
       }

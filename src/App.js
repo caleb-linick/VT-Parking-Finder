@@ -2,63 +2,72 @@
  * App.js
  * 
  * This is the root component for the VT Parking Finder application.
- * It defines the routing structure for the entire application using React Router.
+ * It defines the routing structure and handles authentication checks.
  * 
- * The application has the following routes:
- * - / (Home): Displays the main dashboard with the map and parking lot status
- * - /parking-lots: Shows a list of all parking lots with detailed information
- * - /login: Handles user authentication (login/signup)
- * - /parking-lots/:id: Displays detailed information for a specific parking lot
- * - /profile: Shows the user profile with favorite parking lots
+ * Updated with JWT authentication and protected routes.
  * 
  * @author VT Parking Finder Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './components/HomePage';
 import ParkingLots from './components/ParkingLots';
 import Login from './components/Login';
 import ParkingLotDetail from './components/ParkingLotDetail';
 import UserProfile from './components/UserProfile';
+import apiService from './services/apiService';
 import './App.css';
 
 /**
- * Main application component that sets up routing and app initialization
+ * Protected Route component that checks authentication
+ * Redirects to login if user is not authenticated
+ * 
+ * @param {Object} props - Component props
+ * @param {JSX.Element} props.children - Child components to render if authenticated
+ * @returns {JSX.Element} The rendered component or redirect
+ */
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = apiService.isAuthenticated();
+  
+  if (!isAuthenticated) {
+    // Redirect to login if not authenticated
+    return <Navigate to="/login" />;
+  }
+  
+  return children;
+};
+
+/**
+ * Main application component that sets up routing and authentication
  * 
  * @returns {JSX.Element} The rendered application
  */
 function App() {
-  /**
-   * Initialize user data in localStorage if not present
-   * This allows for a smoother experience for new users and development
-   */
-  React.useEffect(() => {
-    if (!localStorage.getItem('user')) {
-      console.log('No user found in localStorage, initializing as guest');
-      // In a production app, you might want to initialize with default values
-      // or redirect to a login page
+  // Check token validity on app start
+  useEffect(() => {
+    // If token exists but is invalid, clean it up
+    if (localStorage.getItem('token') && !apiService.isAuthenticated()) {
+      apiService.logout();
     }
   }, []);
 
   return (
     <Router>
       <Routes>
-        {/* Home page route */}
+        {/* Public routes */}
         <Route path="/" element={<HomePage />} />
-        
-        {/* Parking lots list route */}
         <Route path="/parking-lots" element={<ParkingLots />} />
-        
-        {/* Authentication route */}
         <Route path="/login" element={<Login />} />
-        
-        {/* Individual parking lot detail route with dynamic ID parameter */}
         <Route path="/parking-lots/:id" element={<ParkingLotDetail />} />
         
-        {/* User profile route (protected, requires login) */}
-        <Route path="/profile" element={<UserProfile />} />
+        {/* Protected routes */}
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <UserProfile />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Router>
   );

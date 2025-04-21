@@ -12,11 +12,12 @@
  * - Displays real-time availability status for each favorite lot
  * 
  * @author VT Parking Finder Team
- * @version 1.0.0
+ * @version 1.2.0
  */
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import apiService from '../services/apiService';
 
 // Sample data for parking lots - in production, this would come from an API
 const parkingLots = [
@@ -28,60 +29,86 @@ const parkingLots = [
 ];
 
 /**
- * Component that displays a user's favorite parking lots
+ * Component that displays a user's favorite parking lots with improved error handling
  * 
  * @returns {JSX.Element} The rendered favorite parking component
  */
 const FavoriteParking = () => {
-  // State for user's favorite parking lots and login status
+  // State for user's favorite parking lots and UI states
   const [userFavorites, setUserFavorites] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   /**
-   * Load user data and favorite parking lots on component mount
-   * Checks localStorage for user data and authentication status
+   * Check if user is logged in on component mount using JWT
    */
   useEffect(() => {
-    // Check if user is logged in and get favorites
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      setIsLoggedIn(true);
-    }
+    const checkAuthStatus = () => {
+      const isAuth = apiService.isAuthenticated();
+      setIsLoggedIn(isAuth);
+    };
+    
+    checkAuthStatus();
   }, []);
 
+  /**
+   * Fetch user favorites when logged in
+   */
   useEffect(() => {
     if (isLoggedIn) {
       const fetchFavorites = async () => {
+        setIsLoading(true);
+        setError(null);
+        
         try {
-          const response = await fetch('/favorites', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          if (!response.ok) {
-            throw new Error(`Error fetching favorites, status: ${response.status}`);
-          }
-          const data = await response.json();
-          // Map the spot IDs to the corresponding parking lot details.
-          const favoriteLots = parkingLots.filter(lot => data.includes(lot.id));
+          // Use the centralized API service to fetch favorites
+          const favorites = await apiService.getFavorites();
+          
+          // Map the spot IDs to the corresponding parking lot details
+          const favoriteLots = parkingLots.filter(lot => favorites.includes(lot.id));
+          
           // Updates the favorites
           setUserFavorites(favoriteLots);
-
-          let user = JSON.parse(localStorage.getItem('user'));
-          user.favorites = data;
-          // set the favorites to the logged in user
-          localStorage.setItem('user', JSON.stringify(user));
-
+          setRetryCount(0); // Reset retry count on success
         } catch (error) {
           console.error('Error fetching favorites:', error);
+          
+          // Set error message based on the error type
+          if (error.response) {
+            // Server responded with an error
+            if (error.response.status === 401) {
+              setError('Your session has expired. Please log in again.');
+              // Clear auth data on authentication failure
+              apiService.logout();
+              setIsLoggedIn(false);
+            } else {
+              setError(`Failed to load favorites: ${error.response.data || 'Server error'}`);
+            }
+          } else if (error.request) {
+            // No response received
+            setError('Could not connect to the server. Please check your connection.');
+            
+            // Implement retry logic for network errors
+            if (retryCount < 3) {
+              setRetryCount(prev => prev + 1);
+              setTimeout(() => {
+                fetchFavorites();
+              }, 2000 * (retryCount + 1)); // Exponential backoff
+            }
+          } else {
+            // Request setup error
+            setError('An unexpected error occurred. Please try again later.');
+          }
+        } finally {
+          setIsLoading(false);
         }
       };
 
       fetchFavorites();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, retryCount]);
 
   /**
    * Render login prompt if user is not authenticated
@@ -92,6 +119,41 @@ const FavoriteParking = () => {
         <h2 style={styles.title}>Your Favorite Parking Spots</h2>
         <div style={styles.loginPrompt}>
           <p>Please <Link to="/login" style={styles.loginLink}>log in</Link> to see your favorite parking spots.</p>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * Render loading state
+   */
+  if (isLoading && userFavorites.length === 0) {
+    return (
+      <div style={styles.container}>
+        <h2 style={styles.title}>Your Favorite Parking Spots</h2>
+        <div style={styles.loadingState}>
+          <div style={styles.spinner}></div>
+          <p>Loading your favorites...</p>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * Render error state
+   */
+  if (error && userFavorites.length === 0) {
+    return (
+      <div style={styles.container}>
+        <h2 style={styles.title}>Your Favorite Parking Spots</h2>
+        <div style={styles.errorState}>
+          <p>{error}</p>
+          <button 
+            onClick={() => setRetryCount(prev => prev + 1)} 
+            style={styles.retryButton}
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -232,6 +294,40 @@ const styles = {
     padding: '15px',
     borderRadius: '4px',
     textAlign: 'center',
+  },
+  loadingState: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: '15px',
+    borderRadius: '4px',
+    textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  spinner: {
+    width: '30px',
+    height: '30px',
+    border: '3px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '50%',
+    borderTop: '3px solid #FFFFFF',
+    animation: 'spin 1s linear infinite',
+    marginBottom: '10px',
+  },
+  errorState: {
+    backgroundColor: 'rgba(255, 100, 100, 0.2)',
+    padding: '15px',
+    borderRadius: '4px',
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#FFFFFF',
+    color: '#800000',
+    border: 'none',
+    padding: '8px 15px',
+    borderRadius: '4px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    marginTop: '10px',
   },
 };
 

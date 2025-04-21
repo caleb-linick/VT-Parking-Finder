@@ -14,42 +14,18 @@
  * - Provides Google Maps navigation via an integrated button
  * - Handles error states when lot information is not found
  * 
- * Changelog:
- * v1.1.0 
- * - Added Google Maps navigation integration using GoogleMapsNavigation component
- * - Enhanced parking lot data model to include coordinates and address information
- * - Added dedicated navigation section in the lot header
- * - Created new location information section with address details
- * - Updated styling to accommodate the navigation button
- * - Improved accessibility for navigation features
- * - Added hover states for interactive elements
- * - Ensured consistent styling with other application components
- * 
- * v1.0.0 (Original)
- * - Basic parking lot detail display
- * - Floor plan visualization
- * - Floor selection for multi-level garages
- * - Favorite toggling functionality
- * - Sensor information display
- * 
  * @author VT Parking Finder Team
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from './Header';
 import GoogleMapsNavigation from './GoogleMapsNavigation';
+import apiService from '../services/apiService';
 
 /**
  * Mock data for parking lots - in production, this would come from an API
- * Contains detailed information including:
- * - Basic lot information (name, total spots, available spots)
- * - Number of floors for multi-level garages
- * - Spots per floor
- * - Occupancy data for each spot (0 = empty, 1 = occupied)
- * - Coordinates for Google Maps integration
- * - Address information
  */
 const parkingLotData = {
   1: {
@@ -112,7 +88,11 @@ const parkingLotData = {
       // Mostly occupied with few available spots
       [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
        1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1]
-    ]
+    ],
+    // Indicate which spot is connected to a sensor
+    sensorMappings: {
+      '1': 0 // Sensor ID 1 maps to spot index 0
+    }
   },
   5: {
     name: 'Architecture Annex',
@@ -132,6 +112,7 @@ const parkingLotData = {
 
 /**
  * Component that displays detailed information about a specific parking lot
+ * with real-time sensor updates
  * 
  * @returns {JSX.Element} The rendered parking lot detail view
  */
@@ -143,95 +124,160 @@ const ParkingLotDetail = () => {
   const [selectedFloor, setSelectedFloor] = useState(0); // Default to first floor
   const [lotInfo, setLotInfo] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [sensorData, setSensorData] = useState(null);
+  const [sensorError, setSensorError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   /**
    * Load parking lot information and check favorite status
    * on component mount
    */
   useEffect(() => {
+    setIsLoading(true);
+    
     // Get lot info from mock data
     const lotData = parkingLotData[id];
     if (lotData) {
       setLotInfo(lotData);
-    }
-
-    // Check if this lot is in user favorites
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      if (user.favorites && user.favorites.includes(Number(id))) {
-        setIsFavorite(true);
+      
+      // Check if this lot is in user favorites using JWT auth
+      if (apiService.isAuthenticated()) {
+        const user = apiService.getUser();
+        if (user && user.favorites) {
+          setIsFavorite(user.favorites.includes(Number(id)));
+        }
       }
     }
+    
+    setIsLoading(false);
   }, [id]);
 
-  // Poll sensor data for sensor id 1 and update the first block for Squires lot (id "4") 
-  // since we only have one sensor
+  /**
+   * Poll sensor data for applicable parking lots
+   */
   useEffect(() => {
-    // Only run this polling for Squires lot - for demo 
-    if (lotInfo && id === "4") {
-      const fetchSensorData = async () => {
-        try {
-          // Fetch sensor data for sensor id 1 from backend
-          const response = await fetch('/sensor-data?sensor_id=1');
-          if (!response.ok) {
-            throw new Error('Failed to fetch sensor data');
+    // Only run this polling for lots with sensor mappings
+    if (lotInfo && lotInfo.sensorMappings) {
+      const sensors = Object.keys(lotInfo.sensorMappings);
+      
+      if (sensors.length > 0) {
+        // Set up polling for sensor data
+        const pollSensorData = async () => {
+          try {
+            setSensorError(null);
+            
+            // For demo purposes, we're only using sensor ID 1
+            // In production, you would fetch data for all sensors
+            const sensorId = 1;
+            const data = await apiService.getSensorData(sensorId);
+            
+            if (data) {
+              setSensorData(data);
+              
+              // Update the occupancy state based on sensor data
+              updateOccupancyFromSensor(sensorId, data.is_occupied);
+            }
+          } catch (error) {
+            console.error('Error fetching sensor data:', error);
+            setSensorError('Unable to fetch real-time sensor data');
           }
-          const sensorData = await response.json();
-
-          // Update the first spot on the first floor based on sensor state:
-          // sensorData.is_occupied should be a boolean (true: spot is occupied, false: available)
-          setLotInfo(prevLotInfo => {
-            // Clone the occupancy array of the first floor to not affect the existing one
-            const updatedFloor = [...prevLotInfo.occupancy[0]];
-
-            // Update the designated block (the first one)
-            updatedFloor[0] = sensorData.is_occupied ? 1 : 0;
-
-            // Create a new occupancy array replacing the first floor only
-            const updatedOccupancy = prevLotInfo.occupancy.map((floorArray, floorIndex) =>
-              floorIndex === 0 ? updatedFloor : floorArray
-            );
-
-            return { ...prevLotInfo, occupancy: updatedOccupancy };
-          });
-        } catch (error) {
-          console.error('Error fetching sensor data:', error);
-        }
-      };
-
-      // Poll every 5 seconds - can be changed
-      const intervalId = setInterval(fetchSensorData, 5000);
-      return () => clearInterval(intervalId);
+        };
+        
+        // Initial fetch
+        pollSensorData();
+        
+        // Set up polling interval (every 5 seconds)
+        const intervalId = setInterval(pollSensorData, 5000);
+        
+        // Clean up interval on component unmount
+        return () => clearInterval(intervalId);
+      }
     }
   }, [lotInfo, id]);
 
+  /**
+   * Update the occupancy state based on sensor data
+   * 
+   * @param {string} sensorId - The ID of the sensor
+   * @param {boolean} isOccupied - Whether the spot is occupied
+   */
+  const updateOccupancyFromSensor = (sensorId, isOccupied) => {
+    if (!lotInfo || !lotInfo.sensorMappings) return;
+    
+    // Get the spot index for this sensor
+    const spotIndex = lotInfo.sensorMappings[sensorId];
+    
+    if (spotIndex !== undefined) {
+      // Clone the current lot info to avoid direct state mutation
+      setLotInfo(prevLotInfo => {
+        // Deep clone the occupancy array
+        const newOccupancy = prevLotInfo.occupancy.map(floor => [...floor]);
+        
+        // Update the spot occupancy (0 = empty, 1 = occupied)
+        newOccupancy[0][spotIndex] = isOccupied ? 1 : 0;
+        
+        // Count available spots
+        const flatOccupancy = newOccupancy.flat();
+        const occupied = flatOccupancy.filter(spot => spot === 1).length;
+        const available = flatOccupancy.length - occupied;
+        
+        return {
+          ...prevLotInfo,
+          occupancy: newOccupancy,
+          availableSpots: available
+        };
+      });
+    }
+  };
 
   /**
    * Toggle the favorite status of the current parking lot
+   * using JWT authentication
    */
-  const toggleFavorite = () => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
+  const toggleFavorite = async () => {
+    if (!apiService.isAuthenticated()) {
+      alert('Please log in to save favorites');
+      return;
+    }
+    
+    try {
+      const user = apiService.getUser();
       const favorites = user.favorites || [];
+      let newFavorites;
       
       if (isFavorite) {
         // Remove from favorites
-        const newFavorites = favorites.filter(fav => fav !== Number(id));
-        user.favorites = newFavorites;
+        newFavorites = favorites.filter(fav => fav !== Number(id));
       } else {
         // Add to favorites
-        user.favorites = [...favorites, Number(id)];
+        newFavorites = [...favorites, Number(id)];
       }
       
-      // Update localStorage and state
-      localStorage.setItem('user', JSON.stringify(user));
+      // Update favorites in the backend
+      await apiService.updateFavorites(newFavorites);
+      
+      // Update local state
       setIsFavorite(!isFavorite);
-    } else {
-      alert('Please log in to save favorites');
+    } catch (error) {
+      console.error('Error updating favorites:', error);
+      alert('Failed to update favorites. Please try again.');
     }
   };
+
+  /**
+   * Render loading state
+   */
+  if (isLoading) {
+    return (
+      <div style={styles.container}>
+        <Header />
+        <div style={styles.loadingContainer}>
+          <div style={styles.loadingSpinner}></div>
+          <p>Loading parking lot information...</p>
+        </div>
+      </div>
+    );
+  }
 
   /**
    * Render error message if parking lot information is not found
@@ -309,6 +355,32 @@ const ParkingLotDetail = () => {
           </div>
         </div>
         
+        {/* Sensor status indicator (if applicable) */}
+        {sensorData && (
+          <div style={styles.sensorStatusContainer}>
+            <div style={styles.sensorStatusHeader}>
+              <h3 style={styles.sensorStatusTitle}>Live Sensor Status</h3>
+              <span style={styles.sensorStatusTime}>
+                Last updated: {new Date(sensorData.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+            <div style={styles.sensorStatusInfo}>
+              <div 
+                style={{
+                  ...styles.sensorStatusIndicator,
+                  backgroundColor: sensorData.is_occupied ? 'red' : 'green'
+                }}
+              ></div>
+              <span>
+                Spot 1 is currently {sensorData.is_occupied ? 'occupied' : 'available'}
+              </span>
+            </div>
+            {sensorError && (
+              <div style={styles.sensorError}>{sensorError}</div>
+            )}
+          </div>
+        )}
+        
         {/* Floor selector for multi-level garages */}
         {lotInfo.floors > 1 && (
           <div style={styles.floorSelector}>
@@ -337,20 +409,31 @@ const ParkingLotDetail = () => {
           </h3>
           <div style={styles.floorPlan}>
             <div style={styles.spotGrid}>
-              {lotInfo.occupancy[selectedFloor].map((isOccupied, index) => (
-                <div
-                  key={index}
-                  style={{
-                    ...styles.parkingSpot,
-                    backgroundColor: isOccupied ? '#FF6B6B' : '#6BFF6B'
-                  }}
-                >
-                  <span style={styles.spotNumber}>{index + 1}</span>
-                  <span style={styles.spotStatus}>
-                    {isOccupied ? 'Occupied' : 'Available'}
-                  </span>
-                </div>
-              ))}
+              {lotInfo.occupancy[selectedFloor].map((isOccupied, index) => {
+                // Check if this spot has a sensor connected to it
+                const hasSensor = lotInfo.sensorMappings && 
+                  Object.values(lotInfo.sensorMappings).includes(index) &&
+                  selectedFloor === 0; // Sensors are only on floor 1 for demo
+                
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      ...styles.parkingSpot,
+                      backgroundColor: isOccupied ? '#FF6B6B' : '#6BFF6B',
+                      ...(hasSensor ? styles.sensorEnabledSpot : {})
+                    }}
+                  >
+                    <span style={styles.spotNumber}>{index + 1}</span>
+                    <span style={styles.spotStatus}>
+                      {isOccupied ? 'Occupied' : 'Available'}
+                    </span>
+                    {hasSensor && (
+                      <span style={styles.sensorBadge}>SENSOR</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
           
@@ -364,6 +447,12 @@ const ParkingLotDetail = () => {
               <div style={styles.legendColor.occupied}></div>
               <span>Occupied</span>
             </div>
+            {lotInfo.sensorMappings && (
+              <div style={styles.legendItem}>
+                <div style={styles.legendColor.sensor}></div>
+                <span>Sensor-Enabled Spot</span>
+              </div>
+            )}
           </div>
         </div>
         
@@ -374,6 +463,11 @@ const ParkingLotDetail = () => {
             This parking lot is equipped with ultrasonic sensors that detect vehicle presence in real-time.
             Data is updated every 5 seconds to provide the most accurate information about parking availability.
           </p>
+          {lotInfo.sensorMappings && (
+            <p style={styles.sensorDetail}>
+              Currently, {Object.keys(lotInfo.sensorMappings).length} sensor{Object.keys(lotInfo.sensorMappings).length > 1 ? 's are' : ' is'} active in this lot, monitoring specific parking spots in real-time.
+            </p>
+          )}
         </div>
         
         {/* Location information section */}
@@ -480,6 +574,44 @@ const styles = {
   navigationSection: {
     width: '100%',
   },
+  sensorStatusContainer: {
+    width: '90%',
+    backgroundColor: '#800080', // Purple to distinguish it
+    padding: '15px',
+    borderRadius: '8px',
+    marginBottom: '20px',
+  },
+  sensorStatusHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '10px',
+  },
+  sensorStatusTitle: {
+    margin: 0,
+    fontSize: '18px',
+  },
+  sensorStatusTime: {
+    fontSize: '14px',
+    opacity: 0.8,
+  },
+  sensorStatusInfo: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  sensorStatusIndicator: {
+    width: '20px',
+    height: '20px',
+    borderRadius: '50%',
+    marginRight: '10px',
+  },
+  sensorError: {
+    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    padding: '5px 10px',
+    borderRadius: '4px',
+    marginTop: '10px',
+    fontSize: '14px',
+  },
   floorSelector: {
     width: '90%',
     backgroundColor: '#EEEEEE',
@@ -535,6 +667,11 @@ const styles = {
     height: '60px',
     borderRadius: '4px',
     padding: '5px',
+    position: 'relative',
+  },
+  sensorEnabledSpot: {
+    boxShadow: '0 0 8px 2px rgba(128, 0, 128, 0.6)', // Purple glow for sensor spots
+    border: '2px solid #800080', // Purple border
   },
   spotNumber: {
     fontWeight: 'bold',
@@ -542,6 +679,16 @@ const styles = {
   },
   spotStatus: {
     fontSize: '12px',
+  },
+  sensorBadge: {
+    position: 'absolute',
+    top: '2px',
+    right: '2px',
+    backgroundColor: '#800080', // Purple
+    color: 'white',
+    fontSize: '8px',
+    padding: '2px 4px',
+    borderRadius: '2px',
   },
   legend: {
     display: 'flex',
@@ -568,6 +715,15 @@ const styles = {
       marginRight: '5px',
       borderRadius: '3px',
     },
+    sensor: {
+      width: '20px',
+      height: '20px',
+      backgroundColor: 'white',
+      border: '2px solid #800080', // Purple border
+      boxShadow: '0 0 5px 1px rgba(128, 0, 128, 0.6)', // Purple glow
+      marginRight: '5px',
+      borderRadius: '3px',
+    }
   },
   sensorInfo: {
     width: '90%',
@@ -580,6 +736,13 @@ const styles = {
   sensorText: {
     textAlign: 'center',
     lineHeight: '1.6',
+  },
+  sensorDetail: {
+    textAlign: 'center',
+    lineHeight: '1.6',
+    fontWeight: 'bold',
+    color: '#800080', // Purple
+    marginTop: '10px',
   },
   locationInfo: {
     width: '90%',
@@ -599,6 +762,23 @@ const styles = {
     borderRadius: '8px',
     color: '#800000', // VT Maroon
     textAlign: 'center',
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '80vh',
+    color: '#FFFFFF',
+  },
+  loadingSpinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '50%',
+    borderTop: '4px solid #FFFFFF',
+    animation: 'spin 1s linear infinite',
+    marginBottom: '15px',
   },
 };
 

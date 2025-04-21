@@ -70,7 +70,8 @@ async function installPythonDependencies() {
       'flask-cors',
       'psycopg2-binary',
       'pyserial',
-      'mysql-connector-python'
+      'mysql-connector-python',
+      'pyjwt' 
     ], { cwd: backendDir });
     console.log(`${colors.green}Python dependencies installed.${colors.reset}`);
   } catch (err) {
@@ -103,7 +104,7 @@ async function checkFrontendDependencies() {
     console.log(`${colors.yellow}Installing frontend dependencies...${colors.reset}`);
     try {
       await runCommand('npm', ['install'], { cwd: frontendDir });
-      await runCommand('npm', ['install', 'axios', '@react-google-maps/api', 'concurrently'], { cwd: frontendDir });
+      await runCommand('npm', ['install', 'axios', '@react-google-maps/api', 'concurrently', 'jsonwebtoken'], { cwd: frontendDir });
       console.log(`${colors.green}Frontend dependencies installed.${colors.reset}`);
     } catch (error) {
       console.error(`${colors.red}Failed to install frontend dependencies: ${error.message}${colors.reset}`);

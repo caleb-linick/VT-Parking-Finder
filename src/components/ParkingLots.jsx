@@ -1,27 +1,25 @@
 /**
  * ParkingLots.jsx
  * 
- * This component displays a comprehensive view of all parking lots at Virginia Tech.
- * It provides:
- * 1. A list of all parking lots with their current status
- * 2. Detailed information for the selected parking lot
- * 3. An interactive map centered on the selected lot
- * 4. Functionality to add/remove lots from favorites
+ * Component for displaying all parking lots with JWT authentication.
  * 
- * The component uses the MapWithUpdatingCenter component to ensure smooth
- * transitions when the selected parking lot changes.
+ * Features:
+ * -  A list of all parking lots with their current status
+ * -  Detailed information for the selected parking lot
+ * -  An interactive map centered on the selected lot
+ * - Functionality to add/remove lots from favorites
  * 
  * @author VT Parking Finder Team
- * @version 1.0.0
+ * @version 1.2.0
  */
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from './Header';
 import MapWithUpdatingCenter from './MapWithUpdatingCenter';
+import apiService from '../services/apiService';
 import 'leaflet/dist/leaflet.css';
 
-// Mock data for parking lots - in production, this would come from an API
 const parkingLots = [
   {
     id: 1,
@@ -65,6 +63,11 @@ const parkingLots = [
   },
 ];
 
+/**
+ * Component that displays all parking lots with JWT authentication
+ * 
+ * @returns {JSX.Element} The rendered parking lots view
+ */
 const ParkingLots = () => {
   // State for the currently selected parking lot
   const [selectedLot, setSelectedLot] = useState(null);
@@ -72,20 +75,52 @@ const ParkingLots = () => {
   // State for user's favorite parking lots
   const [userFavorites, setUserFavorites] = useState([]);
   
+  // State for UI
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
   // Hook for programmatic navigation
   const navigate = useNavigate();
 
   /**
-   * Load user favorites from localStorage on component mount
+   * Load user favorites from JWT token on component mount
    */
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      if (user.favorites) {
-        setUserFavorites(user.favorites);
+    const loadFavorites = async () => {
+      if (apiService.isAuthenticated()) {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+          // Fetch favorites using JWT authentication
+          const favorites = await apiService.getFavorites();
+          setUserFavorites(favorites);
+        } catch (error) {
+          console.error('Error loading favorites:', error);
+          
+          // Handle different error types
+          if (error.response && error.response.status === 401) {
+            setError('Your session has expired. Please log in again.');
+            apiService.logout();
+          } else {
+            setError('Failed to load favorites. Using cached data if available.');
+            
+            // Fall back to cached favorites in localStorage
+            const userData = apiService.getUser();
+            if (userData && userData.favorites) {
+              setUserFavorites(userData.favorites);
+            }
+          }
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        // Not logged in, clear favorites
+        setUserFavorites([]);
       }
-    }
+    };
+    
+    loadFavorites();
   }, []);
 
   /**
@@ -107,45 +142,59 @@ const ParkingLots = () => {
   };
 
   /**
-   * Toggle a parking lot's favorite status
+   * Toggle a parking lot's favorite status with JWT auth
    * @param {number} lotId - The ID of the parking lot to toggle
    */
   const toggleFavorite = async (lotId) => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
+    // Check if user is authenticated
+    if (!apiService.isAuthenticated()) {
       alert('Please log in to save favorites');
+      navigate('/login');
       return;
     }
     
-    const user = JSON.parse(userStr);
-    let favorites = user.favorites || [];
-  
-    // Compute the updated favorites list
-    if (favorites.includes(lotId)) {
-      // Remove the lot if it's already favorited
-      favorites = favorites.filter(id => id !== lotId);
-    } else {
-      favorites.push(lotId);
-    }
-  
-    // Send the new favorites list to the backend
     try {
-      const response = await fetch('/favorites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ favorites })
-      });
-  
-      if (response.ok) {
-        // Update the user's object favorites 
-        user.favorites = favorites;
-        localStorage.setItem('user', JSON.stringify(user));
-        setUserFavorites(favorites); 
+      setError(null);
+      
+      // Compute the updated favorites list
+      let newFavorites;
+      if (userFavorites.includes(lotId)) {
+        // Remove the lot if it's already favorited
+        newFavorites = userFavorites.filter(id => id !== lotId);
       } else {
-        console.error('Backend update failed:', response.status);
+        // Add the lot to favorites
+        newFavorites = [...userFavorites, lotId];
       }
+      
+      // Optimistically update UI
+      setUserFavorites(newFavorites);
+      
+      // Send the new favorites list to the backend
+      await apiService.updateFavorites(newFavorites);
     } catch (error) {
       console.error('Error updating favorites:', error);
+      
+      // Revert to previous state on error
+      if (error.response && error.response.status === 401) {
+        setError('Your session has expired. Please log in again.');
+        apiService.logout();
+        navigate('/login');
+      } else {
+        // Revert the optimistic update
+        setError('Failed to update favorites. Please try again.');
+        
+        // Reload favorites from backend
+        try {
+          const favorites = await apiService.getFavorites();
+          setUserFavorites(favorites);
+        } catch (e) {
+          // If second request also fails, use what we had before
+          const userData = apiService.getUser();
+          if (userData && userData.favorites) {
+            setUserFavorites(userData.favorites);
+          }
+        }
+      }
     }
   };
 
@@ -161,51 +210,71 @@ const ParkingLots = () => {
     <div style={styles.container}>
       <Header />
       <main style={styles.main}>
+        {/* Error display if applicable */}
+        {error && (
+          <div style={styles.errorBanner}>
+            <p>{error}</p>
+            <button 
+              onClick={() => setError(null)} 
+              style={styles.dismissButton}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+        
         <div style={styles.contentContainer}>
           {/* Left panel: List of parking lots */}
           <div style={styles.listContainer}>
             <h2 style={styles.sectionTitle}>List of parking lots</h2>
-            <ul style={styles.lotsList}>
-              {parkingLots.map((lot) => (
-                <li 
-                  key={lot.id} 
-                  style={{
-                    ...styles.lotItem,
-                    ...(selectedLot && selectedLot.id === lot.id ? styles.selectedLot : {})
-                  }}
-                >
-                  {/* Clickable lot information */}
-                  <div 
-                    style={styles.lotItemContent} 
-                    onClick={() => handleLotSelect(lot)}
-                  >
-                    <span style={styles.lotName}>{lot.name}</span>
-                    <span 
-                      style={{
-                        ...styles.lotStatus,
-                        backgroundColor: lot.status === 'Full' ? 'red' : 
-                                        lot.status === 'Some Open' ? 'yellow' : 'green',
-                        color: lot.status === 'Some Open' ? 'black' : 'white'
-                      }}
-                    >
-                      {lot.status}
-                    </span>
-                  </div>
-                  
-                  {/* Favorite toggle button */}
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent lot selection when clicking favorite button
-                      toggleFavorite(lot.id);
+            {isLoading ? (
+              <div style={styles.loadingContainer}>
+                <div style={styles.loadingSpinner}></div>
+                <p>Loading favorites...</p>
+              </div>
+            ) : (
+              <ul style={styles.lotsList}>
+                {parkingLots.map((lot) => (
+                  <li 
+                    key={lot.id} 
+                    style={{
+                      ...styles.lotItem,
+                      ...(selectedLot && selectedLot.id === lot.id ? styles.selectedLot : {})
                     }}
-                    style={isFavorite(lot.id) ? styles.favoriteButton.active : styles.favoriteButton.default}
-                    aria-label={isFavorite(lot.id) ? "Remove from favorites" : "Add to favorites"}
                   >
-                    {isFavorite(lot.id) ? '★' : '☆'}
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    {/* Clickable lot information */}
+                    <div 
+                      style={styles.lotItemContent} 
+                      onClick={() => handleLotSelect(lot)}
+                    >
+                      <span style={styles.lotName}>{lot.name}</span>
+                      <span 
+                        style={{
+                          ...styles.lotStatus,
+                          backgroundColor: lot.status === 'Full' ? 'red' : 
+                                          lot.status === 'Some Open' ? 'yellow' : 'green',
+                          color: lot.status === 'Some Open' ? 'black' : 'white'
+                        }}
+                      >
+                        {lot.status}
+                      </span>
+                    </div>
+                    
+                    {/* Favorite toggle button */}
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent lot selection when clicking favorite button
+                        toggleFavorite(lot.id);
+                      }}
+                      style={isFavorite(lot.id) ? styles.favoriteButton.active : styles.favoriteButton.default}
+                      aria-label={isFavorite(lot.id) ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      {isFavorite(lot.id) ? '★' : '☆'}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           
           {/* Right panel: Detailed information and map */}
@@ -274,6 +343,25 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     padding: '20px',
+  },
+  errorBanner: {
+    width: '90%',
+    backgroundColor: '#FFDDDD', // Light red
+    color: '#800000', // VT Maroon
+    padding: '10px 15px',
+    borderRadius: '4px',
+    marginBottom: '20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dismissButton: {
+    backgroundColor: '#800000', // VT Maroon
+    color: 'white',
+    border: 'none',
+    padding: '5px 10px',
+    borderRadius: '4px',
+    cursor: 'pointer',
   },
   contentContainer: {
     display: 'flex',
@@ -345,6 +433,22 @@ const styles = {
       marginLeft: '10px',
       padding: '0 5px',
     }
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '30px',
+  },
+  loadingSpinner: {
+    width: '30px',
+    height: '30px',
+    border: '3px solid rgba(0, 0, 0, 0.1)',
+    borderRadius: '50%',
+    borderTop: '3px solid #800000', // VT Maroon
+    animation: 'spin 1s linear infinite',
+    marginBottom: '15px',
   },
   // Right panel styles
   detailContainer: {

@@ -12,14 +12,15 @@
  * - Conditionally shows Login or Profile link based on authentication status
  * 
  * @author VT Parking Finder Team
- * @version 1.0.0
+ * @version 1.2.0
  */
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import apiService from '../services/apiService';
 
 /**
- * Header component with navigation links and authentication-aware UI
+ * Header component with JWT-aware navigation
  * 
  * @returns {JSX.Element} The rendered header component
  */
@@ -48,16 +49,17 @@ const Header = () => {
 
   /**
    * Check user authentication status on component mount and route changes
-   * Updates the UI based on whether the user is logged in
+   * Updates the UI based on JWT token presence
    */
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const userData = JSON.parse(userStr);
-      setIsLoggedIn(true);
-      setUsername(userData.username || '');
+    // Check for authentication using JWT
+    const isAuth = apiService.isAuthenticated();
+    setIsLoggedIn(isAuth);
+    
+    if (isAuth) {
+      const user = apiService.getUser();
+      setUsername(user ? user.username : '');
     } else {
-      setIsLoggedIn(false);
       setUsername('');
     }
   }, [location.pathname]); // Re-check when path changes

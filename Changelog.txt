@@ -1,4 +1,102 @@
 VT Parking Finder - CHANGELOG
+
+Version 1.2.0 (April 21 2025)
+API Service Layer
+apiService.js
+
+Centralized API service for handling all backend requests
+Implements JWT token management and automatic inclusion in requests
+Provides authentication state functions and localStorage management
+Includes error handling and token expiration management
+
+
+
+Security Updates
+JWT Authentication Implementation
+
+db.py
+
+Added JWT token generation and verification
+Implemented static JWT secret key for testing
+
+
+server.py
+
+Added JWT middleware for protected routes
+Updated endpoints to verify JWT tokens for user-specific operations
+Implemented proper error responses for authentication failures
+
+
+
+Auto Table Creation
+
+db.py
+
+Added automatic table creation for favorites and sensor data
+Implemented ensure_favorites_table_exists() function to prevent database errors
+Added proper error handling for database operations
+
+
+
+Component Updates
+App.js
+
+Added JWT authentication checks
+Implemented ProtectedRoute component for secure routing
+Added token validation on application start
+
+Login.jsx
+
+Updated with JWT token handling
+Modified to store tokens in localStorage
+Enhanced error handling for authentication failures
+
+Header.jsx
+
+Updated to use JWT for authentication status checks
+Improved login state detection using token verification
+
+UserProfile.jsx
+
+Implemented JWT authentication for profile access
+Added proper token inclusion in API requests
+Enhanced error handling for expired tokens
+
+FavoriteParking.jsx
+
+Fixed backend connection issues for favorites
+Added proper error handling for API failures
+Implemented secure JWT authentication for favorites retrieval
+
+ParkingLots.jsx
+
+Updated favorites functionality with JWT authentication
+Enhanced error handling for favorites operations
+Implemented secure API calls with automatic token inclusion
+
+ParkingLotDetail.jsx
+
+Fixed sensor data integration
+Enhanced real-time updates with secure API calls
+Added visual indicators for sensor-enabled spots
+Implemented error handling for sensor data retrieval failures
+
+Backend Improvements
+
+Updated from session-based to token-based (JWT) authentication
+Implemented proper token generation on login/signup
+Enhanced security with token verification middleware
+
+Database Handling
+
+Added automatic table creation to prevent "relation does not exist" errors
+Improved error handling and debugging for database operations
+Enhanced sensor data storage and retrieval
+
+start.js
+
+Added PyJWT to Python dependencies
+
 Version 1.1.0 (April 2025)
 New Files
 
