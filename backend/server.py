@@ -3,7 +3,6 @@ from flask_cors import CORS
 import mysql.connector
 import db as database_module
 import functools
-
 app = Flask(__name__, template_folder='pages')
 CORS(app)  # Enable CORS for all routes
 
@@ -189,4 +188,4 @@ def health_check():
     return jsonify({"status": "healthy"}), 200
         
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)  # Accessible on your local network
+    app.run(host="100.66.228.156", port=5000)  # Accessible on your local network

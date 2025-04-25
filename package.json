@@ -2,7 +2,7 @@
   "name": "vt-parking-finder",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:5000",
+  "proxy": "http://100.66.228.156:5000",
   "dependencies": {
     "@react-google-maps/api": "^2.20.6",
     "axios": "^1.8.4",
@@ -10,11 +10,11 @@
     "jsonwebtoken": "^9.0.2",
     "leaflet": "^1.9.4",
     "leaflet-routing-machine": "^3.2.12",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.22.0",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -43,5 +43,19 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "description": "A web application that helps Virginia Tech students, faculty, and visitors find available parking spots across campus.",
+  "main": "start.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caleb-linick/VT-Parking-Finder.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/caleb-linick/VT-Parking-Finder/issues"
+  },
+  "homepage": "/caleb-linick/VT-Parking-Finder"
 }

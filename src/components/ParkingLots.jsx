@@ -1,14 +1,14 @@
 /**
  * ParkingLots.jsx
- * 
+ *
  * Component for displaying all parking lots with JWT authentication.
- * 
+ *
  * Features:
  * -  A list of all parking lots with their current status
  * -  Detailed information for the selected parking lot
  * -  An interactive map centered on the selected lot
  * - Functionality to add/remove lots from favorites
- * 
+ *
  * @author VT Parking Finder Team
  * @version 1.2.0
  */
@@ -27,7 +27,7 @@ const parkingLots = [
     position: [37.2312, -80.4263],
     availableSpots: 45,
     totalSpots: 120,
-    status: 'Some Open'
+    status: 'Some Open',
   },
   {
     id: 2,
@@ -35,15 +35,15 @@ const parkingLots = [
     position: [37.2214, -80.4205],
     availableSpots: 0,
     totalSpots: 80,
-    status: 'Full'
+    status: 'Full',
   },
   {
     id: 3,
     name: 'Litton Reaves',
-    position: [37.2220, -80.4267],
+    position: [37.222, -80.4267],
     availableSpots: 35,
     totalSpots: 60,
-    status: 'Available'
+    status: 'Available',
   },
   {
     id: 4,
@@ -51,7 +51,7 @@ const parkingLots = [
     position: [37.2291, -80.4168],
     availableSpots: 5,
     totalSpots: 40,
-    status: 'Some Open'
+    status: 'Some Open',
   },
   {
     id: 5,
@@ -59,26 +59,26 @@ const parkingLots = [
     position: [37.2283, -80.4158],
     availableSpots: 20,
     totalSpots: 30,
-    status: 'Available'
+    status: 'Available',
   },
 ];
 
 /**
  * Component that displays all parking lots with JWT authentication
- * 
+ *
  * @returns {JSX.Element} The rendered parking lots view
  */
 const ParkingLots = () => {
   // State for the currently selected parking lot
   const [selectedLot, setSelectedLot] = useState(null);
-  
+
   // State for user's favorite parking lots
   const [userFavorites, setUserFavorites] = useState([]);
-  
+
   // State for UI
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Hook for programmatic navigation
   const navigate = useNavigate();
 
@@ -90,21 +90,23 @@ const ParkingLots = () => {
       if (apiService.isAuthenticated()) {
         setIsLoading(true);
         setError(null);
-        
+
         try {
           // Fetch favorites using JWT authentication
           const favorites = await apiService.getFavorites();
           setUserFavorites(favorites);
         } catch (error) {
           console.error('Error loading favorites:', error);
-          
+
           // Handle different error types
           if (error.response && error.response.status === 401) {
             setError('Your session has expired. Please log in again.');
             apiService.logout();
           } else {
-            setError('Failed to load favorites. Using cached data if available.');
-            
+            setError(
+              'Failed to load favorites. Using cached data if available.'
+            );
+
             // Fall back to cached favorites in localStorage
             const userData = apiService.getUser();
             if (userData && userData.favorites) {
@@ -119,7 +121,7 @@ const ParkingLots = () => {
         setUserFavorites([]);
       }
     };
-    
+
     loadFavorites();
   }, []);
 
@@ -152,28 +154,28 @@ const ParkingLots = () => {
       navigate('/login');
       return;
     }
-    
+
     try {
       setError(null);
-      
+
       // Compute the updated favorites list
       let newFavorites;
       if (userFavorites.includes(lotId)) {
         // Remove the lot if it's already favorited
-        newFavorites = userFavorites.filter(id => id !== lotId);
+        newFavorites = userFavorites.filter((id) => id !== lotId);
       } else {
         // Add the lot to favorites
         newFavorites = [...userFavorites, lotId];
       }
-      
+
       // Optimistically update UI
       setUserFavorites(newFavorites);
-      
+
       // Send the new favorites list to the backend
       await apiService.updateFavorites(newFavorites);
     } catch (error) {
       console.error('Error updating favorites:', error);
-      
+
       // Revert to previous state on error
       if (error.response && error.response.status === 401) {
         setError('Your session has expired. Please log in again.');
@@ -182,7 +184,7 @@ const ParkingLots = () => {
       } else {
         // Revert the optimistic update
         setError('Failed to update favorites. Please try again.');
-        
+
         // Reload favorites from backend
         try {
           const favorites = await apiService.getFavorites();
@@ -214,15 +216,12 @@ const ParkingLots = () => {
         {error && (
           <div style={styles.errorBanner}>
             <p>{error}</p>
-            <button 
-              onClick={() => setError(null)} 
-              style={styles.dismissButton}
-            >
+            <button onClick={() => setError(null)} style={styles.dismissButton}>
               Dismiss
             </button>
           </div>
         )}
-        
+
         <div style={styles.contentContainer}>
           {/* Left panel: List of parking lots */}
           <div style={styles.listContainer}>
@@ -235,39 +234,53 @@ const ParkingLots = () => {
             ) : (
               <ul style={styles.lotsList}>
                 {parkingLots.map((lot) => (
-                  <li 
-                    key={lot.id} 
+                  <li
+                    key={lot.id}
                     style={{
                       ...styles.lotItem,
-                      ...(selectedLot && selectedLot.id === lot.id ? styles.selectedLot : {})
+                      ...(selectedLot && selectedLot.id === lot.id
+                        ? styles.selectedLot
+                        : {}),
                     }}
                   >
                     {/* Clickable lot information */}
-                    <div 
-                      style={styles.lotItemContent} 
+                    <div
+                      style={styles.lotItemContent}
                       onClick={() => handleLotSelect(lot)}
                     >
                       <span style={styles.lotName}>{lot.name}</span>
-                      <span 
+                      <span
                         style={{
                           ...styles.lotStatus,
-                          backgroundColor: lot.status === 'Full' ? 'red' : 
-                                          lot.status === 'Some Open' ? 'yellow' : 'green',
-                          color: lot.status === 'Some Open' ? 'black' : 'white'
+                          backgroundColor:
+                            lot.status === 'Full'
+                              ? 'red'
+                              : lot.status === 'Some Open'
+                              ? 'yellow'
+                              : 'green',
+                          color: lot.status === 'Some Open' ? 'black' : 'white',
                         }}
                       >
                         {lot.status}
                       </span>
                     </div>
-                    
+
                     {/* Favorite toggle button */}
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation(); // Prevent lot selection when clicking favorite button
                         toggleFavorite(lot.id);
                       }}
-                      style={isFavorite(lot.id) ? styles.favoriteButton.active : styles.favoriteButton.default}
-                      aria-label={isFavorite(lot.id) ? "Remove from favorites" : "Add to favorites"}
+                      style={
+                        isFavorite(lot.id)
+                          ? styles.favoriteButton.active
+                          : styles.favoriteButton.default
+                      }
+                      aria-label={
+                        isFavorite(lot.id)
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'
+                      }
                     >
                       {isFavorite(lot.id) ? '★' : '☆'}
                     </button>
@@ -276,37 +289,46 @@ const ParkingLots = () => {
               </ul>
             )}
           </div>
-          
+
           {/* Right panel: Detailed information and map */}
           <div style={styles.detailContainer}>
             {selectedLot ? (
               <div>
                 <h2 style={styles.detailTitle}>{selectedLot.name}</h2>
                 <div style={styles.lotDetails}>
-                  <p>Available Spots: {selectedLot.availableSpots}/{selectedLot.totalSpots}</p>
+                  <p>
+                    Available Spots: {selectedLot.availableSpots}/
+                    {selectedLot.totalSpots}
+                  </p>
                   <p>Status: {selectedLot.status}</p>
                   <div style={styles.buttonContainer}>
                     {/* Link to detailed floor plan view */}
-                    <Link 
-                      to={`/parking-lots/${selectedLot.id}`} 
+                    <Link
+                      to={`/parking-lots/${selectedLot.id}`}
                       style={styles.viewDetailsButton}
                     >
                       View Floor Plan
                     </Link>
-                    
+
                     {/* Favorite toggle button */}
                     <button
                       onClick={() => toggleFavorite(selectedLot.id)}
-                      style={isFavorite(selectedLot.id) ? styles.favoriteButtonDetail.active : styles.favoriteButtonDetail.default}
+                      style={
+                        isFavorite(selectedLot.id)
+                          ? styles.favoriteButtonDetail.active
+                          : styles.favoriteButtonDetail.default
+                      }
                     >
-                      {isFavorite(selectedLot.id) ? 'Remove from Favorites' : 'Add to Favorites'}
+                      {isFavorite(selectedLot.id)
+                        ? 'Remove from Favorites'
+                        : 'Add to Favorites'}
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Interactive map centered on the selected lot */}
                 <div style={styles.mapWrapper}>
-                  <MapWithUpdatingCenter 
+                  <MapWithUpdatingCenter
                     center={selectedLot.position}
                     zoom={17}
                     markers={[selectedLot]}
@@ -432,7 +454,7 @@ const styles = {
       cursor: 'pointer',
       marginLeft: '10px',
       padding: '0 5px',
-    }
+    },
   },
   loadingContainer: {
     display: 'flex',
@@ -506,7 +528,7 @@ const styles = {
       borderRadius: '4px',
       cursor: 'pointer',
       fontWeight: 'bold',
-    }
+    },
   },
   mapWrapper: {
     width: '100%',
