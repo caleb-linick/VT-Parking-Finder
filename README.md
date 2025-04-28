@@ -147,7 +147,6 @@ vt-parking-finder/
 │   ├── db.py                # Database connection and operations
 │   ├── db_file.sql          # SQL setup script with schema and test data
 │   ├── server.py            # Flask server with API endpoints
-│   ├── mock_sensor.py       # Simulation for ultrasonic sensors
 │   ├── capstoneSensorCode.ino # Arduino/ESP32 code for hardware sensors
 │   └── ...
 ├── package.json             # Dependencies and scripts
@@ -199,7 +198,7 @@ The ESP32 code for the ultrasonic sensors is available in `capstoneSensorCode.in
 - No need to specify the full URL in axios calls (e.g., use `/login` instead of `http://localhost:5000/login`)
 - Check console output to see both server logs in one place
 - Use browser developer tools to debug network requests
-- The JWT secret is configured in `db.py` (Change the JWT_SECRET for production)
+- The JWT secret is configured in `db.py` (Change the JWT_SECRET for production uses)
 
 ## Testing with Real Sensors
 
