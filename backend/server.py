@@ -188,4 +188,4 @@ def health_check():
     return jsonify({"status": "healthy"}), 200
         
 if __name__ == '__main__':
-    app.run(host="100.66.228.156", port=5000)  # Accessible on your local network
+    app.run(host="0.0.0.0", port=5000)  # Accessible on your local network

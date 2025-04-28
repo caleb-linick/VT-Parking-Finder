@@ -2,7 +2,7 @@
   "name": "vt-parking-finder",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://100.66.228.156:5000",
+  "proxy": "http://0.0.0.0:5000",
   "dependencies": {
     "@react-google-maps/api": "^2.20.6",
     "axios": "^1.8.4",
